@@ -1,6 +1,6 @@
 {
-  "name": "Friendli",
-  "short_name": "Friendli",
+  "name": "friendli",
+  "short_name": "friendli",
   "description": "Make meaningful connections, one friend at a time",
   "start_url": "/",
   "display": "standalone",

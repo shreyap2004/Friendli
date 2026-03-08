@@ -60,7 +60,7 @@ export default function Auth() {
   };
 
   return (
-    <div className="flex flex-col items-center justify-center px-6 py-6 bg-gradient-to-br from-[#D4803F] to-[#E04A2B]" style={{ minHeight: "100dvh" }}>
+    <div className="flex flex-col items-center justify-center px-6 bg-gradient-to-br from-[#D4803F] to-[#E04A2B] overflow-y-auto flex-1">
       <div className="w-full max-w-md space-y-8">
         {/* Logo/Header */}
         <div className="text-center space-y-2 pt-2">

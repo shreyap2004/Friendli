@@ -16,8 +16,7 @@ function SplashScreen() {
 
   return (
     <div
-      className="flex flex-col items-center justify-center w-full bg-gradient-to-br from-[#D4803F] to-[#E04A2B]"
-      style={{ minHeight: "100dvh" }}
+      className="flex flex-col items-center justify-center w-full bg-gradient-to-br from-[#D4803F] to-[#E04A2B] flex-1"
     >
       <h1 className="text-5xl font-black text-white lowercase drop-shadow-md mb-2">friendli</h1>
       <p className="text-white/90 lowercase font-semibold drop-shadow-sm">make meaningful connections</p>
@@ -103,11 +102,9 @@ export default function Root() {
   }
 
   return (
-    <div className="flex justify-center bg-[#0D3B66]" style={{ minHeight: "100dvh" }}>
-      <div className="relative w-full md:max-w-[430px] bg-background flex flex-col md:shadow-2xl" style={{ minHeight: "100dvh" }}>
+    <div className="flex justify-center bg-[#0D3B66] flex-1">
+      <div className="relative w-full md:max-w-[430px] bg-background flex flex-col md:shadow-2xl flex-1 overflow-hidden">
         <Outlet />
-
-        {showNavigation && <InstallBanner />}
 
         {showNavigation && (
           <nav className="sticky bottom-0 left-0 right-0 bg-white border-t border-[#EE964B]/20 px-4 py-2 flex justify-around items-center z-50">

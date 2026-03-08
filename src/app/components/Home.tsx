@@ -639,19 +639,21 @@ export default function Home() {
             ))}
           </AnimatePresence>
 
-          {!premiumStatus.isPremium && users.length > DAILY_REC_LIMIT && (
-            <div className="bg-white rounded-2xl shadow-lg p-6 text-center">
-              <Crown className="mx-auto mb-3 text-[#F4D35E]" size={36} />
-              <h3 className="text-lg font-extrabold text-[#0D3B66] lowercase mb-1">want to see more?</h3>
-              <p className="text-sm text-[#0D3B66]/60 lowercase font-medium mb-4">
-                free users see up to {DAILY_REC_LIMIT} profiles. upgrade to friendli+ for unlimited discovery, advanced filters, and more!
+          {!premiumStatus.isPremium && (
+            <div className="bg-white rounded-2xl shadow-lg p-5 text-center">
+              <Crown className="mx-auto mb-2 text-[#F4D35E]" size={28} />
+              <h3 className="text-base font-extrabold text-[#0D3B66] lowercase mb-1">
+                {users.length > DAILY_REC_LIMIT ? "want to see more?" : "unlock premium features"}
+              </h3>
+              <p className="text-xs text-[#0D3B66]/60 lowercase font-medium mb-3">
+                unlimited discovery, advanced filters, see who liked you, and more
               </p>
               <Button
                 onClick={() => navigate("/settings")}
                 className="w-full bg-gradient-to-r from-[#EE964B] to-[#F95738] hover:opacity-90 text-white font-black lowercase py-3"
               >
                 <Crown className="mr-2" size={16} />
-                start 48-hour free trial
+                try friendli+ free
               </Button>
             </div>
           )}
