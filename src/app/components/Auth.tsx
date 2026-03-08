@@ -60,10 +60,10 @@ export default function Auth() {
   };
 
   return (
-    <div className="flex flex-col items-center justify-center px-6 bg-gradient-to-br from-[#D4803F] to-[#E04A2B]" style={{ minHeight: "100dvh" }}>
+    <div className="flex flex-col items-center justify-center px-6 py-12 bg-gradient-to-br from-[#D4803F] to-[#E04A2B]" style={{ minHeight: "100dvh" }}>
       <div className="w-full max-w-md space-y-8">
         {/* Logo/Header */}
-        <div className="text-center space-y-2">
+        <div className="text-center space-y-2 pt-4">
           <h1 className="text-5xl font-black text-white lowercase drop-shadow-md">friendli</h1>
           <p className="text-white/90 lowercase font-semibold drop-shadow-sm">make meaningful connections</p>
         </div>
