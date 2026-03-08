@@ -1,0 +1,102 @@
+import { Outlet, useLocation, useNavigate } from "react-router";
+import { Home, MessageCircle, User, Settings } from "lucide-react";
+import { useEffect, useState } from "react";
+
+export default function Root() {
+  const location = useLocation();
+  const navigate = useNavigate();
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [unreadMatches, setUnreadMatches] = useState(0);
+
+  // Check if user is authenticated
+  useEffect(() => {
+    const auth = localStorage.getItem('friendli_user');
+    setIsAuthenticated(!!auth);
+  }, [location.pathname]);
+
+  // Check for new matches (unread chats)
+  useEffect(() => {
+    const checkUnread = () => {
+      const chats = JSON.parse(localStorage.getItem('friendli_chats') || '[]');
+      const newMatchCount = chats.filter((c: { isNewMatch?: boolean; messages: unknown[] }) => 
+        c.isNewMatch && (!c.messages || c.messages.length === 0)
+      ).length;
+      setUnreadMatches(newMatchCount);
+    };
+    checkUnread();
+    const interval = setInterval(checkUnread, 2000);
+    return () => clearInterval(interval);
+  }, [location.pathname]);
+
+  const showNavigation = isAuthenticated && 
+    location.pathname !== '/' && 
+    location.pathname !== '/onboarding';
+
+  const isActive = (path: string) => location.pathname === path;
+
+  return (
+    <div className="flex justify-center min-h-screen bg-[#0D3B66]">
+      {/* Phone frame */}
+      <div className="relative w-full max-w-[430px] min-h-screen bg-background flex flex-col shadow-2xl">
+        <Outlet />
+        
+        {showNavigation && (
+          <nav className="sticky bottom-0 left-0 right-0 bg-white border-t border-[#EE964B]/20 px-4 py-2 flex justify-around items-center z-50">
+            <button
+              onClick={() => navigate('/home')}
+              className={`flex flex-col items-center gap-0.5 px-3 py-1.5 rounded-xl transition-all ${
+                isActive('/home') 
+                  ? 'text-[#EE964B] bg-[#EE964B]/10' 
+                  : 'text-[#0D3B66]/40'
+              }`}
+            >
+              <Home size={22} strokeWidth={isActive('/home') ? 2.5 : 2} />
+              <span className="text-[10px] lowercase font-semibold">discover</span>
+            </button>
+            
+            <button
+              onClick={() => navigate('/messages')}
+              className={`flex flex-col items-center gap-0.5 px-3 py-1.5 rounded-xl transition-all relative ${
+                isActive('/messages') 
+                  ? 'text-[#EE964B] bg-[#EE964B]/10' 
+                  : 'text-[#0D3B66]/40'
+              }`}
+            >
+              <MessageCircle size={22} strokeWidth={isActive('/messages') ? 2.5 : 2} />
+              {unreadMatches > 0 && (
+                <div className="absolute -top-0.5 right-1 w-4 h-4 bg-[#F95738] rounded-full flex items-center justify-center">
+                  <span className="text-white text-[9px] font-bold">{unreadMatches}</span>
+                </div>
+              )}
+              <span className="text-[10px] lowercase font-semibold">messages</span>
+            </button>
+            
+            <button
+              onClick={() => navigate('/profile')}
+              className={`flex flex-col items-center gap-0.5 px-3 py-1.5 rounded-xl transition-all ${
+                isActive('/profile') 
+                  ? 'text-[#EE964B] bg-[#EE964B]/10' 
+                  : 'text-[#0D3B66]/40'
+              }`}
+            >
+              <User size={22} strokeWidth={isActive('/profile') ? 2.5 : 2} />
+              <span className="text-[10px] lowercase font-semibold">profile</span>
+            </button>
+            
+            <button
+              onClick={() => navigate('/settings')}
+              className={`flex flex-col items-center gap-0.5 px-3 py-1.5 rounded-xl transition-all ${
+                isActive('/settings') 
+                  ? 'text-[#EE964B] bg-[#EE964B]/10' 
+                  : 'text-[#0D3B66]/40'
+              }`}
+            >
+              <Settings size={22} strokeWidth={isActive('/settings') ? 2.5 : 2} />
+              <span className="text-[10px] lowercase font-semibold">settings</span>
+            </button>
+          </nav>
+        )}
+      </div>
+    </div>
+  );
+}
