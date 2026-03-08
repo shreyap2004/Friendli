@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en" style="background:#0D3B66;margin:0;padding:0">
+<html lang="en" style="margin:0;padding:0">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
@@ -11,7 +11,11 @@
     <link rel="apple-touch-icon" href="/icons/icon-192.png" />
     <title>Friendli</title>
     <style>
-      html, body { margin: 0; padding: 0; background: #0D3B66; min-height: 100vh; min-height: 100dvh; overflow-x: hidden; }
+      html, body { margin: 0; padding: 0; min-height: 100vh; min-height: 100dvh; overflow-x: hidden; }
+      /* Default to orange gradient (login page is first thing users see) */
+      html { background: linear-gradient(135deg, #D4803F, #E04A2B); }
+      /* On desktop (>430px), use navy frame */
+      @media (min-width: 430px) { html { background: #0D3B66; } }
       body { padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left); }
     </style>
   </head>

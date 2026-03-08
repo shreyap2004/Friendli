@@ -17,12 +17,10 @@ export default function Root() {
     const authed = !!auth;
     setIsAuthenticated(authed);
 
-    // Route guard: redirect unauthenticated users to login
     if (!authed && PROTECTED_ROUTES.includes(location.pathname)) {
       navigate('/', { replace: true });
     }
 
-    // Redirect authenticated users away from login to home
     if (authed && location.pathname === '/') {
       const onboarded = localStorage.getItem('friendli_onboarded');
       if (onboarded) {
@@ -63,10 +61,22 @@ export default function Root() {
 
   const isActive = (path: string) => location.pathname === path;
 
+  // Determine background based on current page
+  const isLoginPage = location.pathname === '/' && !isAuthenticated;
+  const isOnboarding = location.pathname === '/onboarding';
+
+  // On login: orange gradient. On onboarding: cream. On app pages: cream.
+  // The outer wrapper only shows on desktop (> 430px) as a frame effect.
+  const outerBg = isLoginPage
+    ? "bg-gradient-to-br from-[#D4803F] to-[#E04A2B]"
+    : isOnboarding
+      ? "bg-background"
+      : "bg-[#FDFAEC]";
+
   return (
-    <div className="flex justify-center min-h-screen bg-[#0D3B66]">
-      {/* Phone frame */}
-      <div className="relative w-full max-w-[430px] min-h-screen bg-background flex flex-col shadow-2xl">
+    <div className={`flex justify-center min-h-screen min-h-[100dvh] ${outerBg} md:bg-[#0D3B66]`}>
+      {/* App container: full width on mobile, phone frame on desktop */}
+      <div className="relative w-full md:max-w-[430px] min-h-screen min-h-[100dvh] bg-background flex flex-col md:shadow-2xl">
         <Outlet />
 
         {showNavigation && <InstallBanner />}
