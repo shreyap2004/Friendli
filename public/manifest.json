@@ -4,8 +4,8 @@
   "description": "Make meaningful connections, one friend at a time",
   "start_url": "/",
   "display": "standalone",
-  "background_color": "#FDFAEC",
-  "theme_color": "#EE964B",
+  "background_color": "#0D3B66",
+  "theme_color": "#0D3B66",
   "orientation": "portrait",
   "icons": [
     {
