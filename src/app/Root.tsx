@@ -6,6 +6,14 @@ import InstallBanner from "./components/InstallBanner";
 const PROTECTED_ROUTES = ["/home", "/messages", "/profile", "/settings"];
 
 function SplashScreen() {
+  // Set html background to match splash on mobile
+  useEffect(() => {
+    const isMobile = window.innerWidth < 768;
+    if (isMobile) {
+      document.documentElement.style.background = "linear-gradient(135deg, #D4803F, #E04A2B)";
+    }
+  }, []);
+
   return (
     <div
       className="flex flex-col items-center justify-center w-full bg-gradient-to-br from-[#D4803F] to-[#E04A2B]"
@@ -80,17 +88,22 @@ export default function Root() {
     return <SplashScreen />;
   }
 
-  // Determine outer background based on current page
-  const isLoginPage = location.pathname === '/' && !isAuthenticated;
-  const isOnboarding = location.pathname === '/onboarding';
-  const outerBg = isLoginPage
-    ? "bg-gradient-to-br from-[#D4803F] to-[#E04A2B]"
-    : isOnboarding
-      ? "bg-background"
-      : "bg-[#FDFAEC]";
+  // Update html background color to match current page on mobile
+  // This prevents Safari's overscroll bounce from showing the wrong color
+  useEffect(() => {
+    const isLoginOrSplash = location.pathname === '/' && !isAuthenticated;
+    const isMobile = window.innerWidth < 768;
+    if (isMobile) {
+      document.documentElement.style.background = isLoginOrSplash
+        ? "linear-gradient(135deg, #D4803F, #E04A2B)"
+        : "#FDFAEC";
+    } else {
+      document.documentElement.style.background = "#0D3B66";
+    }
+  }, [location.pathname, isAuthenticated]);
 
   return (
-    <div className={`flex justify-center ${outerBg} md:bg-[#0D3B66]`} style={{ minHeight: "100dvh" }}>
+    <div className="flex justify-center bg-[#0D3B66]" style={{ minHeight: "100dvh" }}>
       <div className="relative w-full md:max-w-[430px] bg-background flex flex-col md:shadow-2xl" style={{ minHeight: "100dvh" }}>
         <Outlet />
 
