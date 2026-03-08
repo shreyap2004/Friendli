@@ -70,15 +70,15 @@ export default function InstallBanner() {
 
   return (
     <div className="mx-4 mb-3">
-      <div className="bg-gradient-to-r from-[#0D3B66] to-[#0D3B66]/90 rounded-2xl p-4 shadow-lg relative">
+      <div className="bg-gradient-to-r from-[#0D3B66] to-[#0D3B66]/90 rounded-2xl p-4 pb-5 shadow-lg relative">
         <button
           onClick={handleDismiss}
-          className="absolute top-2.5 right-2.5 text-white/40 hover:text-white/70 z-10"
+          className="absolute top-3 right-3 w-6 h-6 flex items-center justify-center rounded-full bg-white/10 hover:bg-white/20 text-white/50 hover:text-white/80 z-10"
         >
-          <X size={16} />
+          <X size={14} />
         </button>
 
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-3 pr-6">
           <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[#EE964B] to-[#F95738] flex items-center justify-center flex-shrink-0">
             <Download size={20} className="text-white" />
           </div>
