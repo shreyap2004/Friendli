@@ -74,9 +74,9 @@ export default function Root() {
       : "bg-[#FDFAEC]";
 
   return (
-    <div className={`flex justify-center min-h-screen min-h-[100dvh] ${outerBg} md:bg-[#0D3B66]`}>
+    <div className={`flex justify-center ${outerBg} md:bg-[#0D3B66]`} style={{ minHeight: "100dvh" }}>
       {/* App container: full width on mobile, phone frame on desktop */}
-      <div className="relative w-full md:max-w-[430px] min-h-screen min-h-[100dvh] bg-background flex flex-col md:shadow-2xl">
+      <div className="relative w-full md:max-w-[430px] bg-background flex flex-col md:shadow-2xl" style={{ minHeight: "100dvh" }}>
         <Outlet />
 
         {showNavigation && <InstallBanner />}
