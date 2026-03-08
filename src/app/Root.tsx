@@ -5,17 +5,31 @@ import InstallBanner from "./components/InstallBanner";
 
 const PROTECTED_ROUTES = ["/home", "/messages", "/profile", "/settings"];
 
+function SplashScreen() {
+  return (
+    <div
+      className="flex flex-col items-center justify-center w-full bg-gradient-to-br from-[#D4803F] to-[#E04A2B]"
+      style={{ minHeight: "100dvh" }}
+    >
+      <h1 className="text-5xl font-black text-white lowercase drop-shadow-md mb-2">friendli</h1>
+      <p className="text-white/90 lowercase font-semibold drop-shadow-sm">make meaningful connections</p>
+    </div>
+  );
+}
+
 export default function Root() {
   const location = useLocation();
   const navigate = useNavigate();
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [unreadMatches, setUnreadMatches] = useState(0);
+  const [authChecked, setAuthChecked] = useState(false);
 
   // Check auth and redirect if needed
   useEffect(() => {
     const auth = localStorage.getItem('friendli_user');
     const authed = !!auth;
     setIsAuthenticated(authed);
+    setAuthChecked(true);
 
     if (!authed && PROTECTED_ROUTES.includes(location.pathname)) {
       navigate('/', { replace: true });
@@ -61,12 +75,14 @@ export default function Root() {
 
   const isActive = (path: string) => location.pathname === path;
 
-  // Determine background based on current page
+  // Show splash screen while checking auth (prevents flash of login page)
+  if (!authChecked) {
+    return <SplashScreen />;
+  }
+
+  // Determine outer background based on current page
   const isLoginPage = location.pathname === '/' && !isAuthenticated;
   const isOnboarding = location.pathname === '/onboarding';
-
-  // On login: orange gradient. On onboarding: cream. On app pages: cream.
-  // The outer wrapper only shows on desktop (> 430px) as a frame effect.
   const outerBg = isLoginPage
     ? "bg-gradient-to-br from-[#D4803F] to-[#E04A2B]"
     : isOnboarding
@@ -75,7 +91,6 @@ export default function Root() {
 
   return (
     <div className={`flex justify-center ${outerBg} md:bg-[#0D3B66]`} style={{ minHeight: "100dvh" }}>
-      {/* App container: full width on mobile, phone frame on desktop */}
       <div className="relative w-full md:max-w-[430px] bg-background flex flex-col md:shadow-2xl" style={{ minHeight: "100dvh" }}>
         <Outlet />
 
