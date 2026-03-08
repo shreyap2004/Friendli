@@ -3,8 +3,8 @@ import { useNavigate } from "react-router";
 import { Button } from "./ui/button";
 import { Input } from "./ui/input";
 import { Label } from "./ui/label";
-import { Mail } from "lucide-react";
 import { toast } from "sonner";
+import * as api from "@/lib/api";
 
 export default function Auth() {
   const navigate = useNavigate();
@@ -12,49 +12,50 @@ export default function Auth() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [name, setName] = useState("");
+  const [loading, setLoading] = useState(false);
 
-  const handleAuth = (e: React.FormEvent) => {
+  const handleAuth = async (e: React.FormEvent) => {
     e.preventDefault();
-    
-    if (isSignUp && !name) {
+
+    if (isSignUp && !name.trim()) {
       toast.error("please enter your name");
       return;
     }
-    
-    if (!email || !password) {
+    if (!email.trim() || !password) {
       toast.error("please enter email and password");
       return;
     }
-
-    const user = {
-      email,
-      name: isSignUp ? name : "demo user",
-      id: Date.now().toString()
-    };
-    
-    localStorage.setItem('friendli_user', JSON.stringify(user));
-    
-    if (isSignUp) {
-      toast.success("account created!");
-      navigate('/onboarding');
-    } else {
-      toast.success("welcome back!");
-      navigate('/home');
+    if (password.length < 4) {
+      toast.error("password must be at least 4 characters");
+      return;
     }
-  };
 
-  const handleGoogleSignIn = () => {
-    const user = {
-      email: "demo@google.com",
-      name: "demo user",
-      id: Date.now().toString()
-    };
-    
-    localStorage.setItem('friendli_user', JSON.stringify(user));
-    toast.success("signed in with google!");
-    
-    const hasOnboarded = localStorage.getItem('friendli_onboarded');
-    navigate(hasOnboarded ? '/home' : '/onboarding');
+    setLoading(true);
+    try {
+      if (isSignUp) {
+        const result = await api.register(email, password, name);
+        api.setCurrentUser(result.user);
+        toast.success("account created!");
+        navigate("/onboarding");
+      } else {
+        const result = await api.login(email, password);
+        api.setCurrentUser(result.user);
+        if (result.user.onboarded) {
+          toast.success(`welcome back, ${result.user.name}!`, {
+            duration: 3000,
+            style: { background: "#EE964B", color: "white", fontWeight: "bold" },
+          });
+          navigate("/home");
+        } else {
+          navigate("/onboarding");
+        }
+      }
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : "something went wrong";
+      toast.error(message);
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -70,7 +71,7 @@ export default function Auth() {
         <div className="bg-white rounded-2xl shadow-xl p-6 space-y-5">
           <div className="text-center">
             <h2 className="text-xl font-bold text-[#0D3B66] lowercase">
-              {isSignUp ? 'create account' : 'welcome back'}
+              {isSignUp ? "create account" : "welcome back"}
             </h2>
           </div>
 
@@ -113,34 +114,14 @@ export default function Auth() {
               />
             </div>
 
-            <Button 
-              type="submit" 
+            <Button
+              type="submit"
+              disabled={loading}
               className="w-full bg-gradient-to-r from-[#D4803F] to-[#E04A2B] hover:opacity-90 text-white lowercase text-base py-6 font-bold"
             >
-              {isSignUp ? 'sign up' : 'sign in'}
+              {loading ? "loading..." : isSignUp ? "sign up" : "sign in"}
             </Button>
           </form>
-
-          {/* Divider */}
-          <div className="relative">
-            <div className="absolute inset-0 flex items-center">
-              <div className="w-full border-t border-[#0D3B66]/15"></div>
-            </div>
-            <div className="relative flex justify-center text-sm">
-              <span className="px-4 bg-white text-[#0D3B66]/50 lowercase font-semibold">or</span>
-            </div>
-          </div>
-
-          {/* Google Sign In */}
-          <Button
-            type="button"
-            variant="outline"
-            onClick={handleGoogleSignIn}
-            className="w-full border-2 border-[#0D3B66]/20 text-[#0D3B66] hover:bg-[#FDFAEC] hover:border-[#EE964B] lowercase text-base py-6 font-bold"
-          >
-            <Mail className="mr-2" size={20} />
-            continue with google
-          </Button>
 
           {/* Toggle Sign In/Sign Up */}
           <div className="text-center">
@@ -149,7 +130,7 @@ export default function Auth() {
               onClick={() => setIsSignUp(!isSignUp)}
               className="text-[#EE964B] hover:text-[#E04A2B] lowercase text-sm font-semibold"
             >
-              {isSignUp ? 'already have an account? sign in' : "don't have an account? sign up"}
+              {isSignUp ? "already have an account? sign in" : "don't have an account? sign up"}
             </button>
           </div>
         </div>

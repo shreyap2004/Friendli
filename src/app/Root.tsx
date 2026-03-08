@@ -2,34 +2,62 @@ import { Outlet, useLocation, useNavigate } from "react-router";
 import { Home, MessageCircle, User, Settings } from "lucide-react";
 import { useEffect, useState } from "react";
 
+const PROTECTED_ROUTES = ["/home", "/messages", "/profile", "/settings"];
+
 export default function Root() {
   const location = useLocation();
   const navigate = useNavigate();
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [unreadMatches, setUnreadMatches] = useState(0);
 
-  // Check if user is authenticated
+  // Check auth and redirect if needed
   useEffect(() => {
     const auth = localStorage.getItem('friendli_user');
-    setIsAuthenticated(!!auth);
-  }, [location.pathname]);
+    const authed = !!auth;
+    setIsAuthenticated(authed);
 
-  // Check for new matches (unread chats)
+    // Route guard: redirect unauthenticated users to login
+    if (!authed && PROTECTED_ROUTES.includes(location.pathname)) {
+      navigate('/', { replace: true });
+    }
+
+    // Redirect authenticated users away from login to home
+    if (authed && location.pathname === '/') {
+      const onboarded = localStorage.getItem('friendli_onboarded');
+      if (onboarded) {
+        navigate('/home', { replace: true });
+      }
+    }
+  }, [location.pathname, navigate]);
+
+  // Check for new matches by polling server
   useEffect(() => {
-    const checkUnread = () => {
-      const chats = JSON.parse(localStorage.getItem('friendli_chats') || '[]');
-      const newMatchCount = chats.filter((c: { isNewMatch?: boolean; messages: unknown[] }) => 
-        c.isNewMatch && (!c.messages || c.messages.length === 0)
-      ).length;
-      setUnreadMatches(newMatchCount);
+    const checkUnread = async () => {
+      const user = localStorage.getItem('friendli_user');
+      if (!user) return;
+      try {
+        const parsed = JSON.parse(user);
+        const res = await fetch(
+          `https://vaqvxkjelzrzwbtdohsa.supabase.co/functions/v1/make-server-50b042b1/chats/${parsed.id}`,
+          { headers: { Authorization: `Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZhcXZ4a2plbHpyendidGRvaHNhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzI4NDU5NzQsImV4cCI6MjA4ODQyMTk3NH0.JzR5ankoUQtOg-uZSgJwsACFlI1eS8j0NRN4HNa4144` } }
+        );
+        if (res.ok) {
+          const data = await res.json();
+          const chats = data.chats || [];
+          const newMatchCount = chats.filter((c: { isNewMatch?: boolean; messages?: unknown[] }) =>
+            c.isNewMatch && (!c.messages || c.messages.length === 0)
+          ).length;
+          setUnreadMatches(newMatchCount);
+        }
+      } catch { /* silent */ }
     };
     checkUnread();
-    const interval = setInterval(checkUnread, 2000);
+    const interval = setInterval(checkUnread, 10000);
     return () => clearInterval(interval);
   }, [location.pathname]);
 
-  const showNavigation = isAuthenticated && 
-    location.pathname !== '/' && 
+  const showNavigation = isAuthenticated &&
+    location.pathname !== '/' &&
     location.pathname !== '/onboarding';
 
   const isActive = (path: string) => location.pathname === path;
@@ -39,26 +67,26 @@ export default function Root() {
       {/* Phone frame */}
       <div className="relative w-full max-w-[430px] min-h-screen bg-background flex flex-col shadow-2xl">
         <Outlet />
-        
+
         {showNavigation && (
           <nav className="sticky bottom-0 left-0 right-0 bg-white border-t border-[#EE964B]/20 px-4 py-2 flex justify-around items-center z-50">
             <button
               onClick={() => navigate('/home')}
               className={`flex flex-col items-center gap-0.5 px-3 py-1.5 rounded-xl transition-all ${
-                isActive('/home') 
-                  ? 'text-[#EE964B] bg-[#EE964B]/10' 
+                isActive('/home')
+                  ? 'text-[#EE964B] bg-[#EE964B]/10'
                   : 'text-[#0D3B66]/40'
               }`}
             >
               <Home size={22} strokeWidth={isActive('/home') ? 2.5 : 2} />
               <span className="text-[10px] lowercase font-semibold">discover</span>
             </button>
-            
+
             <button
               onClick={() => navigate('/messages')}
               className={`flex flex-col items-center gap-0.5 px-3 py-1.5 rounded-xl transition-all relative ${
-                isActive('/messages') 
-                  ? 'text-[#EE964B] bg-[#EE964B]/10' 
+                isActive('/messages')
+                  ? 'text-[#EE964B] bg-[#EE964B]/10'
                   : 'text-[#0D3B66]/40'
               }`}
             >
@@ -70,24 +98,24 @@ export default function Root() {
               )}
               <span className="text-[10px] lowercase font-semibold">messages</span>
             </button>
-            
+
             <button
               onClick={() => navigate('/profile')}
               className={`flex flex-col items-center gap-0.5 px-3 py-1.5 rounded-xl transition-all ${
-                isActive('/profile') 
-                  ? 'text-[#EE964B] bg-[#EE964B]/10' 
+                isActive('/profile')
+                  ? 'text-[#EE964B] bg-[#EE964B]/10'
                   : 'text-[#0D3B66]/40'
               }`}
             >
               <User size={22} strokeWidth={isActive('/profile') ? 2.5 : 2} />
               <span className="text-[10px] lowercase font-semibold">profile</span>
             </button>
-            
+
             <button
               onClick={() => navigate('/settings')}
               className={`flex flex-col items-center gap-0.5 px-3 py-1.5 rounded-xl transition-all ${
-                isActive('/settings') 
-                  ? 'text-[#EE964B] bg-[#EE964B]/10' 
+                isActive('/settings')
+                  ? 'text-[#EE964B] bg-[#EE964B]/10'
                   : 'text-[#0D3B66]/40'
               }`}
             >

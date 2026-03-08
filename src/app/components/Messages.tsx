@@ -1,10 +1,9 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { Button } from "./ui/button";
 import { Input } from "./ui/input";
-import { ArrowLeft, Send, Sparkles, HandMetal } from "lucide-react";
-import { projectId, publicAnonKey } from "/utils/supabase/info";
-
-const API_BASE = `https://${projectId}.supabase.co/functions/v1/make-server-50b042b1`;
+import { ArrowLeft, Send, Sparkles, HandMetal, CheckCheck, MessageCircle, Heart } from "lucide-react";
+import { motion } from "motion/react";
+import * as api from "@/lib/api";
 
 interface Message {
   id: string;
@@ -16,12 +15,35 @@ interface Message {
 
 interface Chat {
   id: string;
-  userId: string;
-  userName: string;
-  userPhoto: string;
+  participants: string[];
+  participantNames: Record<string, string>;
+  participantPhotos: Record<string, string>;
   messages: Message[];
   isNewMatch?: boolean;
   matchedAt?: number;
+  deletedParticipants?: string[];
+}
+
+function TypingIndicator() {
+  return (
+    <div className="flex justify-start">
+      <div className="bg-white text-[#0D3B66] rounded-2xl px-4 py-3 flex items-center gap-1.5">
+        {[0, 1, 2].map((i) => (
+          <motion.span
+            key={i}
+            className="block w-2 h-2 rounded-full bg-[#0D3B66]/40"
+            animate={{ y: [0, -6, 0] }}
+            transition={{
+              duration: 0.6,
+              repeat: Infinity,
+              delay: i * 0.15,
+              ease: "easeInOut",
+            }}
+          />
+        ))}
+      </div>
+    </div>
+  );
 }
 
 export default function Messages() {
@@ -29,42 +51,46 @@ export default function Messages() {
   const [selectedChat, setSelectedChat] = useState<Chat | null>(null);
   const [messageText, setMessageText] = useState("");
   const [sending, setSending] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [otherUserTyping, setOtherUserTyping] = useState(false);
+  const [readAt, setReadAt] = useState<number | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
-  const currentUser = JSON.parse(localStorage.getItem('friendli_user') || '{}');
+  const typingTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const lastTypingSentRef = useRef<number>(0);
+  const currentUser = api.getCurrentUser();
 
-  const loadChats = useCallback(() => {
-    // Load from localStorage (source of truth for now)
-    const savedChats: Chat[] = JSON.parse(localStorage.getItem('friendli_chats') || '[]');
+  const getOtherUserId = useCallback((chat: Chat) => {
+    return chat.participants?.find((id: string) => id !== currentUser?.id) || "";
+  }, [currentUser?.id]);
 
-    // Also try to sync messages from server for each chat
-    if (savedChats.length > 0) {
-      Promise.all(
-        savedChats.map(async (chat) => {
-          try {
-            const res = await fetch(`${API_BASE}/messages/${chat.id}`, {
-              headers: { Authorization: `Bearer ${publicAnonKey}` },
-            });
-            if (res.ok) {
-              const data = await res.json();
-              if (data.messages && data.messages.length > 0) {
-                // Merge server messages with local (server is source of truth for messages)
-                return { ...chat, messages: data.messages, isNewMatch: data.messages.length === 0 && chat.isNewMatch };
-              }
-            }
-          } catch (err) {
-            console.log(`Error syncing messages for chat ${chat.id}:`, err);
-          }
-          return chat;
-        })
-      ).then((syncedChats) => {
-        setChats(syncedChats);
-        // Update localStorage with synced data
-        localStorage.setItem('friendli_chats', JSON.stringify(syncedChats));
-      });
+  const getOtherUserName = useCallback((chat: Chat) => {
+    const otherId = getOtherUserId(chat);
+    if (chat.deletedParticipants?.includes(otherId)) return "[deleted account]";
+    return chat.participantNames?.[otherId] || "unknown";
+  }, [getOtherUserId]);
+
+  const getOtherUserPhoto = useCallback((chat: Chat) => {
+    const otherId = getOtherUserId(chat);
+    if (chat.deletedParticipants?.includes(otherId)) return "";
+    return chat.participantPhotos?.[otherId] || "";
+  }, [getOtherUserId]);
+
+  const isOtherUserDeleted = useCallback((chat: Chat) => {
+    const otherId = getOtherUserId(chat);
+    return chat.deletedParticipants?.includes(otherId) ?? false;
+  }, [getOtherUserId]);
+
+  const loadChats = useCallback(async () => {
+    if (!currentUser?.id) return;
+    try {
+      const result = await api.getChats(currentUser.id);
+      setChats(result.chats || []);
+    } catch (err) {
+      console.error("Error loading chats:", err);
+    } finally {
+      setLoading(false);
     }
-
-    setChats(savedChats);
-  }, []);
+  }, [currentUser?.id]);
 
   useEffect(() => {
     loadChats();
@@ -72,46 +98,120 @@ export default function Messages() {
 
   useEffect(() => {
     scrollToBottom();
-  }, [selectedChat?.messages]);
+  }, [selectedChat?.messages, otherUserTyping]);
+
+  // Mark chat as read when opening it
+  useEffect(() => {
+    if (!selectedChat || !currentUser?.id) return;
+    api.markRead(selectedChat.id, currentUser.id);
+  }, [selectedChat?.id, currentUser?.id]);
 
   // Poll for new messages when in a chat
   useEffect(() => {
     if (!selectedChat) return;
-
     const interval = setInterval(async () => {
       try {
-        const res = await fetch(`${API_BASE}/messages/${selectedChat.id}`, {
-          headers: { Authorization: `Bearer ${publicAnonKey}` },
-        });
-        if (res.ok) {
-          const data = await res.json();
-          if (data.messages && data.messages.length > (selectedChat.messages?.length || 0)) {
-            const updatedChat = { ...selectedChat, messages: data.messages };
-            setSelectedChat(updatedChat);
-            // Update in chats list too
-            setChats(prev => {
-              const updated = prev.map(c => c.id === selectedChat.id ? updatedChat : c);
-              localStorage.setItem('friendli_chats', JSON.stringify(updated));
-              return updated;
-            });
+        const result = await api.getMessages(selectedChat.id);
+        if (result.messages && result.messages.length > (selectedChat.messages?.length || 0)) {
+          const updatedChat = { ...selectedChat, messages: result.messages };
+          setSelectedChat(updatedChat);
+          setChats(prev => prev.map(c => c.id === selectedChat.id ? updatedChat : c));
+          // Re-mark as read when new messages arrive
+          if (currentUser?.id) {
+            api.markRead(selectedChat.id, currentUser.id);
           }
         }
       } catch (err) {
-        console.log("Error polling messages:", err);
+        console.error("Error polling messages:", err);
       }
-    }, 5000); // Poll every 5 seconds
-
+    }, 5000);
     return () => clearInterval(interval);
-  }, [selectedChat?.id, selectedChat?.messages?.length]);
+  }, [selectedChat?.id, selectedChat?.messages?.length, currentUser?.id]);
+
+  // Poll for typing indicator from the other user
+  useEffect(() => {
+    if (!selectedChat || !currentUser?.id) return;
+    const otherId = getOtherUserId(selectedChat);
+    if (!otherId || isOtherUserDeleted(selectedChat)) return;
+
+    const interval = setInterval(async () => {
+      try {
+        const result = await api.getTyping(selectedChat.id, otherId);
+        setOtherUserTyping(!!result);
+      } catch {
+        setOtherUserTyping(false);
+      }
+    }, 3000);
+
+    return () => {
+      clearInterval(interval);
+      setOtherUserTyping(false);
+    };
+  }, [selectedChat?.id, currentUser?.id, getOtherUserId, isOtherUserDeleted]);
+
+  // Poll for read receipts from the other user
+  useEffect(() => {
+    if (!selectedChat || !currentUser?.id) return;
+    const otherId = getOtherUserId(selectedChat);
+    if (!otherId || isOtherUserDeleted(selectedChat)) return;
+
+    const pollReadReceipt = async () => {
+      try {
+        const result = await api.getReadReceipt(selectedChat.id, otherId);
+        setReadAt(result?.readAt ?? null);
+      } catch {
+        // ignore
+      }
+    };
+
+    pollReadReceipt();
+    const interval = setInterval(pollReadReceipt, 5000);
+
+    return () => {
+      clearInterval(interval);
+      setReadAt(null);
+    };
+  }, [selectedChat?.id, currentUser?.id, getOtherUserId, isOtherUserDeleted]);
+
+  // Clean up typing timeout on unmount
+  useEffect(() => {
+    return () => {
+      if (typingTimeoutRef.current) clearTimeout(typingTimeoutRef.current);
+    };
+  }, []);
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   };
 
-  const sendMessage = async () => {
-    if (!messageText.trim() || !selectedChat || sending) return;
+  const handleTyping = useCallback(() => {
+    if (!selectedChat || !currentUser?.id) return;
 
+    const now = Date.now();
+    // Debounce: only send typing every 2 seconds
+    if (now - lastTypingSentRef.current >= 2000) {
+      api.setTyping(selectedChat.id, currentUser.id, true);
+      lastTypingSentRef.current = now;
+    }
+
+    // Clear previous stop-typing timeout
+    if (typingTimeoutRef.current) clearTimeout(typingTimeoutRef.current);
+
+    // Stop typing after 2 seconds of inactivity
+    typingTimeoutRef.current = setTimeout(() => {
+      api.setTyping(selectedChat.id, currentUser.id, false);
+      lastTypingSentRef.current = 0;
+    }, 2000);
+  }, [selectedChat?.id, currentUser?.id]);
+
+  const sendMessage = async () => {
+    if (!messageText.trim() || !selectedChat || sending || !currentUser) return;
     setSending(true);
+
+    // Stop typing indicator on send
+    if (typingTimeoutRef.current) clearTimeout(typingTimeoutRef.current);
+    api.setTyping(selectedChat.id, currentUser.id, false);
+    lastTypingSentRef.current = 0;
 
     const newMessage: Message = {
       id: `msg-${Date.now()}`,
@@ -121,153 +221,165 @@ export default function Messages() {
       timestamp: Date.now()
     };
 
-    // Optimistic update locally
     const updatedChat = {
       ...selectedChat,
-      messages: [...selectedChat.messages, newMessage],
+      messages: [...(selectedChat.messages || []), newMessage],
       isNewMatch: false
     };
 
-    const updatedChats = chats.map(chat => 
-      chat.id === selectedChat.id ? updatedChat : chat
-    );
-
-    setChats(updatedChats);
+    setChats(prev => prev.map(chat => chat.id === selectedChat.id ? updatedChat : chat));
     setSelectedChat(updatedChat);
-    localStorage.setItem('friendli_chats', JSON.stringify(updatedChats));
     setMessageText("");
 
-    // Send to server
     try {
-      const res = await fetch(`${API_BASE}/messages`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${publicAnonKey}`,
-        },
-        body: JSON.stringify({
-          chatId: selectedChat.id,
-          senderId: currentUser.id,
-          senderName: currentUser.name || "you",
-          text: messageText,
-        }),
-      });
-
-      if (!res.ok) {
-        const errData = await res.json().catch(() => ({}));
-        console.log("Error sending message to server:", errData);
-      }
+      await api.sendMessage(selectedChat.id, currentUser.id, currentUser.name || "you", messageText);
     } catch (err) {
-      console.log("Error sending message to server:", err);
+      console.error("Error sending message:", err);
     } finally {
       setSending(false);
     }
   };
 
   const handleKeyPress = (e: React.KeyboardEvent) => {
-    if (e.key === 'Enter' && !e.shiftKey) {
+    if (e.key === "Enter" && !e.shiftKey) {
       e.preventDefault();
       sendMessage();
     }
   };
 
-  const openChat = (chat: Chat) => {
-    setSelectedChat(chat);
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setMessageText(e.target.value);
+    if (e.target.value.length > 0) {
+      handleTyping();
+    }
   };
 
   // Sort chats: new matches first, then by most recent message/match time
   const sortedChats = [...chats].sort((a, b) => {
-    // New matches first
     if (a.isNewMatch && !b.isNewMatch) return -1;
     if (!a.isNewMatch && b.isNewMatch) return 1;
-
-    const aTime = a.messages.length > 0 
-      ? a.messages[a.messages.length - 1].timestamp 
-      : (a.matchedAt || 0);
-    const bTime = b.messages.length > 0 
-      ? b.messages[b.messages.length - 1].timestamp 
-      : (b.matchedAt || 0);
+    const aTime = a.messages?.length > 0 ? a.messages[a.messages.length - 1].timestamp : (a.matchedAt || 0);
+    const bTime = b.messages?.length > 0 ? b.messages[b.messages.length - 1].timestamp : (b.matchedAt || 0);
     return bTime - aTime;
   });
 
   if (selectedChat) {
+    const otherName = getOtherUserName(selectedChat);
+    const otherPhoto = getOtherUserPhoto(selectedChat);
+    const deleted = isOtherUserDeleted(selectedChat);
+
     return (
       <div className="flex flex-col h-full min-h-screen">
-        {/* Chat Header */}
         <div className="bg-white border-b border-[#EE964B]/20 px-4 py-3 flex items-center gap-3">
-          <button
-            onClick={() => { setSelectedChat(null); loadChats(); }}
-            className="text-[#0D3B66] hover:text-[#EE964B]"
-          >
+          <button onClick={() => { setSelectedChat(null); loadChats(); }} className="text-[#0D3B66] hover:text-[#EE964B]">
             <ArrowLeft size={22} strokeWidth={2.5} />
           </button>
-          <img 
-            src={selectedChat.userPhoto} 
-            alt={selectedChat.userName}
-            className="w-9 h-9 rounded-full object-cover border-2 border-[#EE964B]"
-          />
+          {deleted ? (
+            <div className="w-9 h-9 rounded-full bg-gray-300 flex items-center justify-center border-2 border-gray-400">
+              <span className="text-gray-500 font-bold text-sm">?</span>
+            </div>
+          ) : otherPhoto ? (
+            <img src={otherPhoto} alt={otherName} className="w-9 h-9 rounded-full object-cover border-2 border-[#EE964B]" />
+          ) : (
+            <div className="w-9 h-9 rounded-full bg-[#EE964B]/20 flex items-center justify-center border-2 border-[#EE964B]">
+              <span className="text-[#EE964B] font-bold text-sm">{otherName?.[0]?.toUpperCase()}</span>
+            </div>
+          )}
           <div>
-            <h3 className="font-bold text-[#0D3B66] lowercase text-sm">{selectedChat.userName}</h3>
+            <h3 className={`font-bold lowercase text-sm ${deleted ? "text-gray-400" : "text-[#0D3B66]"}`}>{otherName}</h3>
           </div>
         </div>
 
-        {/* Messages */}
         <div className="flex-1 overflow-y-auto px-4 py-4 space-y-3 bg-[#FDFAEC]">
-          {selectedChat.messages.length === 0 && (
-            <div className="text-center py-10">
-              <div className="bg-white rounded-2xl shadow-lg p-6 max-w-sm mx-auto space-y-3">
-                <Sparkles size={28} className="text-[#EE964B] mx-auto" />
-                <h3 className="text-base font-bold text-[#0D3B66] lowercase">you matched with {selectedChat.userName}!</h3>
-                <p className="text-[#0D3B66]/60 text-sm lowercase font-medium">
-                  break the ice and send the first message
-                </p>
+          {deleted && (
+            <div className="flex justify-center py-2">
+              <div className="bg-gray-100 border border-gray-200 rounded-full px-4 py-1.5">
+                <p className="text-xs text-gray-400 lowercase font-medium">this user has deleted their account</p>
               </div>
             </div>
           )}
 
-          {selectedChat.messages.map((message) => {
-            const isCurrentUser = message.senderId === currentUser.id;
+          {(!selectedChat.messages || selectedChat.messages.length === 0) && !deleted && (
+            <div className="text-center py-10">
+              <div className="bg-white rounded-2xl shadow-lg p-8 max-w-sm mx-auto space-y-4">
+                <div className="relative mx-auto w-16 h-16">
+                  <div className="absolute inset-0 bg-[#EE964B]/10 rounded-full" />
+                  <div className="absolute inset-2 bg-[#EE964B]/20 rounded-full" />
+                  <div className="absolute inset-0 flex items-center justify-center">
+                    <Sparkles size={28} className="text-[#EE964B]" />
+                  </div>
+                </div>
+                <h3 className="text-base font-bold text-[#0D3B66] lowercase">you matched with {otherName}!</h3>
+                <p className="text-[#0D3B66]/60 text-sm lowercase font-medium">break the ice and send the first message</p>
+                <div className="flex justify-center gap-1 pt-1">
+                  <Heart size={12} className="text-[#EE964B]/40" />
+                  <Heart size={12} className="text-[#EE964B]/60" />
+                  <Heart size={12} className="text-[#EE964B]/40" />
+                </div>
+              </div>
+            </div>
+          )}
+
+          {(!selectedChat.messages || selectedChat.messages.length === 0) && deleted && (
+            <div className="text-center py-10">
+              <div className="bg-white rounded-2xl shadow-lg p-8 max-w-sm mx-auto space-y-4">
+                <div className="relative mx-auto w-16 h-16">
+                  <div className="absolute inset-0 bg-gray-100 rounded-full" />
+                  <div className="absolute inset-0 flex items-center justify-center">
+                    <MessageCircle size={28} className="text-gray-300" />
+                  </div>
+                </div>
+                <h3 className="text-base font-bold text-gray-400 lowercase">no messages</h3>
+                <p className="text-gray-400/80 text-sm lowercase font-medium">this conversation is no longer active</p>
+              </div>
+            </div>
+          )}
+
+          {(selectedChat.messages || []).map((message) => {
+            const isCurrentUser = message.senderId === currentUser?.id;
+            const isRead = isCurrentUser && readAt !== null && message.timestamp <= readAt;
+
             return (
-              <div
-                key={message.id}
-                className={`flex ${isCurrentUser ? 'justify-end' : 'justify-start'}`}
-              >
-                <div
-                  className={`max-w-[75%] rounded-2xl px-4 py-2.5 ${
-                    isCurrentUser
-                      ? 'bg-[#EE964B] text-white'
-                      : 'bg-white text-[#0D3B66]'
-                  }`}
-                >
+              <div key={message.id} className={`flex ${isCurrentUser ? "justify-end" : "justify-start"}`}>
+                <div className={`max-w-[75%] rounded-2xl px-4 py-2.5 ${isCurrentUser ? "bg-[#EE964B] text-white" : "bg-white text-[#0D3B66]"}`}>
                   <p className="text-sm lowercase font-medium">{message.text}</p>
-                  <p className={`text-[10px] mt-1 ${isCurrentUser ? 'text-white/60' : 'text-[#0D3B66]/40'}`}>
-                    {new Date(message.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                  </p>
+                  <div className={`flex items-center gap-1 mt-1 ${isCurrentUser ? "justify-end" : ""}`}>
+                    <p className={`text-[10px] ${isCurrentUser ? "text-white/60" : "text-[#0D3B66]/40"}`}>
+                      {new Date(message.timestamp).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
+                    </p>
+                    {isRead && (
+                      <CheckCheck size={12} className="text-white/80" />
+                    )}
+                  </div>
                 </div>
               </div>
             );
           })}
+
+          {otherUserTyping && <TypingIndicator />}
+
           <div ref={messagesEndRef} />
         </div>
 
-        {/* Message Input */}
         <div className="bg-white border-t border-[#EE964B]/20 px-4 py-3">
-          <div className="flex gap-2">
-            <Input
-              value={messageText}
-              onChange={(e) => setMessageText(e.target.value)}
-              onKeyDown={handleKeyPress}
-              placeholder="type a message..."
-              className="flex-1 lowercase bg-[#FDFAEC] border-[#EE964B]/30"
-            />
-            <Button
-              onClick={sendMessage}
-              disabled={!messageText.trim() || sending}
-              className="bg-[#EE964B] hover:bg-[#EE964B]/90 text-white"
-            >
-              <Send size={18} />
-            </Button>
-          </div>
+          {deleted ? (
+            <div className="flex items-center justify-center py-1">
+              <p className="text-xs text-gray-400 lowercase font-medium">you can no longer send messages to this conversation</p>
+            </div>
+          ) : (
+            <div className="flex gap-2">
+              <Input
+                value={messageText}
+                onChange={handleInputChange}
+                onKeyDown={handleKeyPress}
+                placeholder="type a message..."
+                className="flex-1 lowercase bg-[#FDFAEC] border-[#EE964B]/30"
+              />
+              <Button onClick={sendMessage} disabled={!messageText.trim() || sending} className="bg-[#EE964B] hover:bg-[#EE964B]/90 text-white">
+                <Send size={18} />
+              </Button>
+            </div>
+          )}
         </div>
       </div>
     );
@@ -275,74 +387,91 @@ export default function Messages() {
 
   return (
     <div className="flex-1 overflow-y-auto pb-20">
-      {/* Header */}
       <div className="sticky top-0 z-10 bg-background/95 backdrop-blur-sm px-4 pt-5 pb-3 border-b border-[#EE964B]/15">
         <h1 className="text-2xl font-black text-[#0D3B66] lowercase">messages</h1>
         <p className="text-[#EE964B] lowercase text-sm font-semibold">your friendships</p>
       </div>
 
-      {/* Chat List */}
       <div className="px-4 py-4">
-        {sortedChats.length > 0 ? (
+        {loading ? (
+          <div className="text-center py-10">
+            <p className="text-[#0D3B66]/50 lowercase font-medium">loading chats...</p>
+          </div>
+        ) : sortedChats.length > 0 ? (
           <div className="space-y-3">
-            {sortedChats.map((chat) => (
-              <button
-                key={chat.id}
-                onClick={() => openChat(chat)}
-                className="w-full bg-white rounded-xl shadow-md p-3.5 flex items-center gap-3 hover:shadow-lg transition-shadow active:scale-[0.98]"
-              >
-                {/* Profile pic with orange ring for new matches */}
-                <div className="relative flex-shrink-0">
-                  <img 
-                    src={chat.userPhoto} 
-                    alt={chat.userName}
-                    className={`w-12 h-12 rounded-full object-cover border-2 ${
-                      chat.isNewMatch ? 'border-[#EE964B]' : 'border-[#0D3B66]/15'
-                    }`}
-                  />
-                  {chat.isNewMatch && (
-                    <div className="absolute -top-0.5 -right-0.5 w-4 h-4 bg-[#EE964B] rounded-full border-2 border-white" />
-                  )}
-                </div>
-                <div className="flex-1 text-left min-w-0">
-                  <div className="flex items-center gap-2">
-                    <h3 className="font-bold text-[#0D3B66] lowercase text-sm">{chat.userName}</h3>
-                    {chat.isNewMatch && chat.messages.length === 0 && (
-                      <span className="bg-gradient-to-r from-[#EE964B] to-[#F95738] text-white text-[10px] px-2 py-0.5 rounded-full lowercase font-bold">
-                        new
-                      </span>
+            {sortedChats.map((chat) => {
+              const otherName = getOtherUserName(chat);
+              const otherPhoto = getOtherUserPhoto(chat);
+              const deleted = isOtherUserDeleted(chat);
+              const lastMsg = chat.messages?.length > 0 ? chat.messages[chat.messages.length - 1] : null;
+
+              return (
+                <button
+                  key={chat.id}
+                  onClick={() => setSelectedChat(chat)}
+                  className="w-full bg-white rounded-xl shadow-md p-3.5 flex items-center gap-3 hover:shadow-lg transition-shadow active:scale-[0.98]"
+                >
+                  <div className="relative flex-shrink-0">
+                    {deleted ? (
+                      <div className="w-12 h-12 rounded-full bg-gray-300 flex items-center justify-center border-2 border-gray-400">
+                        <span className="text-gray-500 font-bold">?</span>
+                      </div>
+                    ) : otherPhoto ? (
+                      <img src={otherPhoto} alt={otherName}
+                        className={`w-12 h-12 rounded-full object-cover border-2 ${chat.isNewMatch ? "border-[#EE964B]" : "border-[#0D3B66]/15"}`} />
+                    ) : (
+                      <div className={`w-12 h-12 rounded-full bg-[#EE964B]/20 flex items-center justify-center border-2 ${chat.isNewMatch ? "border-[#EE964B]" : "border-[#0D3B66]/15"}`}>
+                        <span className="text-[#EE964B] font-bold">{otherName?.[0]?.toUpperCase()}</span>
+                      </div>
+                    )}
+                    {chat.isNewMatch && (
+                      <div className="absolute -top-0.5 -right-0.5 w-4 h-4 bg-[#EE964B] rounded-full border-2 border-white" />
                     )}
                   </div>
-                  {chat.messages.length > 0 ? (
-                    <p className="text-xs text-[#0D3B66]/60 lowercase truncate font-medium">
-                      {chat.messages[chat.messages.length - 1].senderId === currentUser.id ? 'you: ' : ''}
-                      {chat.messages[chat.messages.length - 1].text}
-                    </p>
-                  ) : (
-                    <p className="text-xs text-[#0D3B66]/45 lowercase font-medium flex items-center gap-1">
-                      say hi to your new match <span className="text-base">👋</span>
-                    </p>
-                  )}
-                </div>
-                {/* Timestamp */}
-                <div className="text-[10px] text-[#0D3B66]/40 font-medium flex-shrink-0">
-                  {chat.messages.length > 0
-                    ? new Date(chat.messages[chat.messages.length - 1].timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
-                    : chat.matchedAt 
-                      ? 'just now'
-                      : ''
-                  }
-                </div>
-              </button>
-            ))}
+                  <div className="flex-1 text-left min-w-0">
+                    <div className="flex items-center gap-2">
+                      <h3 className={`font-bold lowercase text-sm ${deleted ? "text-gray-400" : "text-[#0D3B66]"}`}>{otherName}</h3>
+                      {chat.isNewMatch && (!chat.messages || chat.messages.length === 0) && (
+                        <span className="bg-gradient-to-r from-[#EE964B] to-[#F95738] text-white text-[10px] px-2 py-0.5 rounded-full lowercase font-bold">new</span>
+                      )}
+                    </div>
+                    {lastMsg ? (
+                      <p className="text-xs text-[#0D3B66]/60 lowercase truncate font-medium">
+                        {lastMsg.senderId === currentUser?.id ? "you: " : ""}{lastMsg.text}
+                      </p>
+                    ) : (
+                      <p className="text-xs text-[#0D3B66]/45 lowercase font-medium flex items-center gap-1">
+                        {deleted ? "account deleted" : "say hi to your new match"}
+                      </p>
+                    )}
+                  </div>
+                  <div className="text-[10px] text-[#0D3B66]/40 font-medium flex-shrink-0">
+                    {lastMsg
+                      ? new Date(lastMsg.timestamp).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })
+                      : chat.matchedAt ? "just now" : ""}
+                  </div>
+                </button>
+              );
+            })}
           </div>
         ) : (
-          <div className="bg-white rounded-2xl shadow-lg p-6 text-center space-y-3">
-            <HandMetal className="mx-auto text-[#EE964B]" size={36} />
+          <div className="bg-white rounded-2xl shadow-lg p-8 text-center space-y-4">
+            <div className="relative mx-auto w-20 h-20">
+              <div className="absolute inset-0 bg-[#EE964B]/10 rounded-full animate-pulse" />
+              <div className="absolute inset-3 bg-[#EE964B]/15 rounded-full" />
+              <div className="absolute inset-0 flex items-center justify-center">
+                <HandMetal className="text-[#EE964B]" size={36} />
+              </div>
+            </div>
             <h2 className="text-lg font-bold text-[#0D3B66] lowercase">no messages yet</h2>
-            <p className="text-[#0D3B66]/70 lowercase text-sm font-medium">
-              start friendifying people to make new connections!
+            <p className="text-[#0D3B66]/60 lowercase text-sm font-medium max-w-xs mx-auto">
+              start friendifying people to make new connections and your conversations will show up here!
             </p>
+            <div className="flex justify-center gap-2 pt-1">
+              <MessageCircle size={14} className="text-[#EE964B]/30" />
+              <MessageCircle size={16} className="text-[#EE964B]/50" />
+              <MessageCircle size={14} className="text-[#EE964B]/30" />
+            </div>
           </div>
         )}
       </div>

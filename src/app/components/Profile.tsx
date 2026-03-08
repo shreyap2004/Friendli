@@ -1,10 +1,11 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Button } from "./ui/button";
 import { Input } from "./ui/input";
 import { Label } from "./ui/label";
 import { Textarea } from "./ui/textarea";
-import { Pencil, Save, Plus, X } from "lucide-react";
+import { Pencil, Save, Plus, X, Camera, ImagePlus } from "lucide-react";
 import { toast } from "sonner";
+import * as api from "@/lib/api";
 
 const HOBBIES = [
   "hiking", "reading", "cooking", "gaming", "yoga", "photography",
@@ -12,8 +13,40 @@ const HOBBIES = [
   "movies", "coffee", "fitness", "volunteering"
 ];
 
+function compressImage(file: File, maxSize: number = 300): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const img = new Image();
+      img.onload = () => {
+        const canvas = document.createElement("canvas");
+        let w = img.width;
+        let h = img.height;
+        if (w > h) {
+          if (w > maxSize) { h = (h * maxSize) / w; w = maxSize; }
+        } else {
+          if (h > maxSize) { w = (w * maxSize) / h; h = maxSize; }
+        }
+        canvas.width = w;
+        canvas.height = h;
+        const ctx = canvas.getContext("2d");
+        ctx?.drawImage(img, 0, 0, w, h);
+        resolve(canvas.toDataURL("image/jpeg", 0.7));
+      };
+      img.onerror = reject;
+      img.src = e.target?.result as string;
+    };
+    reader.onerror = reject;
+    reader.readAsDataURL(file);
+  });
+}
+
 export default function Profile() {
   const [isEditing, setIsEditing] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const profilePhotoRef = useRef<HTMLInputElement>(null);
+  const hobbyPhotoRef = useRef<HTMLInputElement>(null);
+  const [uploadingHobby, setUploadingHobby] = useState<string | null>(null);
   const [profile, setProfile] = useState({
     name: "",
     age: "",
@@ -24,6 +57,8 @@ export default function Profile() {
     lookingFor: "",
     hobbies: [] as string[],
     customHobby: "",
+    profilePhoto: "",
+    hobbyPhotos: {} as Record<string, string>,
   });
 
   useEffect(() => {
@@ -31,7 +66,8 @@ export default function Profile() {
   }, []);
 
   const loadProfile = () => {
-    const user = JSON.parse(localStorage.getItem('friendli_user') || '{}');
+    const user = api.getCurrentUser();
+    if (!user) return;
     setProfile({
       name: user.name || "",
       age: user.age || "",
@@ -41,16 +77,41 @@ export default function Profile() {
       funFact: user.funFact || "",
       lookingFor: user.lookingFor || "",
       hobbies: user.hobbies || [],
-      customHobby: ""
+      customHobby: "",
+      profilePhoto: user.profilePhoto || "",
+      hobbyPhotos: user.hobbyPhotos || {},
     });
   };
 
-  const saveProfile = () => {
-    const user = JSON.parse(localStorage.getItem('friendli_user') || '{}');
-    const updatedUser = { ...user, ...profile };
-    localStorage.setItem('friendli_user', JSON.stringify(updatedUser));
-    setIsEditing(false);
-    toast.success("profile updated!");
+  const saveProfile = async () => {
+    setSaving(true);
+    try {
+      const user = api.getCurrentUser();
+      if (!user) return;
+
+      const updateData = {
+        name: profile.name,
+        age: profile.age,
+        almaMater: profile.almaMater,
+        gender: profile.gender,
+        city: profile.city,
+        funFact: profile.funFact,
+        lookingFor: profile.lookingFor,
+        hobbies: profile.hobbies,
+        profilePhoto: profile.profilePhoto,
+        hobbyPhotos: profile.hobbyPhotos,
+      };
+
+      const result = await api.updateUser(user.id, updateData);
+      api.setCurrentUser(result.user);
+      setIsEditing(false);
+      toast.success("profile updated!");
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : "failed to save";
+      toast.error(message);
+    } finally {
+      setSaving(false);
+    }
   };
 
   const toggleHobby = (hobby: string) => {
@@ -73,10 +134,41 @@ export default function Profile() {
   };
 
   const removeHobby = (hobby: string) => {
-    setProfile(prev => ({
-      ...prev,
-      hobbies: prev.hobbies.filter(h => h !== hobby)
-    }));
+    setProfile(prev => {
+      const photos = { ...prev.hobbyPhotos };
+      delete photos[hobby];
+      return {
+        ...prev,
+        hobbies: prev.hobbies.filter(h => h !== hobby),
+        hobbyPhotos: photos,
+      };
+    });
+  };
+
+  const handleProfilePhotoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    try {
+      const compressed = await compressImage(file, 300);
+      setProfile(prev => ({ ...prev, profilePhoto: compressed }));
+    } catch {
+      toast.error("failed to process image");
+    }
+  };
+
+  const handleHobbyPhotoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file || !uploadingHobby) return;
+    try {
+      const compressed = await compressImage(file, 500);
+      setProfile(prev => ({
+        ...prev,
+        hobbyPhotos: { ...prev.hobbyPhotos, [uploadingHobby]: compressed }
+      }));
+    } catch {
+      toast.error("failed to process image");
+    }
+    setUploadingHobby(null);
   };
 
   return (
@@ -90,97 +182,96 @@ export default function Profile() {
           </div>
           <Button
             onClick={() => isEditing ? saveProfile() : setIsEditing(true)}
+            disabled={saving}
             className="bg-[#EE964B] hover:bg-[#EE964B]/90 text-white lowercase font-bold text-sm"
             size="sm"
           >
             {isEditing ? (
-              <>
-                <Save className="mr-1.5" size={16} />
-                save
-              </>
+              <>{saving ? "saving..." : <><Save className="mr-1.5" size={16} />save</>}</>
             ) : (
-              <>
-                <Pencil className="mr-1.5" size={16} />
-                edit
-              </>
+              <><Pencil className="mr-1.5" size={16} />edit</>
             )}
           </Button>
         </div>
       </div>
 
-      {/* Profile Content */}
       <div className="px-4 py-4 space-y-4">
+        {/* Profile Photo */}
+        <div className="bg-white rounded-2xl shadow-lg p-5">
+          <div className="flex items-center gap-4">
+            <div
+              onClick={() => isEditing && profilePhotoRef.current?.click()}
+              className={`w-20 h-20 rounded-full border-3 border-[#EE964B] flex items-center justify-center overflow-hidden bg-[#FDFAEC] ${isEditing ? "cursor-pointer" : ""}`}
+            >
+              {profile.profilePhoto ? (
+                <img src={profile.profilePhoto} alt="profile" className="w-full h-full object-cover" />
+              ) : (
+                <Camera size={24} className="text-[#EE964B]/50" />
+              )}
+            </div>
+            <div>
+              <h2 className="text-lg font-black text-[#0D3B66] lowercase">{profile.name}</h2>
+              <p className="text-sm text-[#0D3B66]/50 lowercase font-medium">{profile.city}{profile.almaMater ? ` - ${profile.almaMater}` : ""}</p>
+              {isEditing && (
+                <div className="flex gap-2 mt-1">
+                  <button onClick={() => profilePhotoRef.current?.click()} className="text-xs text-[#EE964B] lowercase font-semibold">
+                    {profile.profilePhoto ? "change photo" : "add photo"}
+                  </button>
+                  {profile.profilePhoto && (
+                    <button onClick={() => setProfile(prev => ({ ...prev, profilePhoto: "" }))} className="text-xs text-[#F95738] lowercase font-semibold">
+                      remove
+                    </button>
+                  )}
+                </div>
+              )}
+            </div>
+          </div>
+          <input ref={profilePhotoRef} type="file" accept="image/*" className="hidden" onChange={handleProfilePhotoUpload} />
+        </div>
+
         <div className="bg-white rounded-2xl shadow-lg p-5 space-y-5">
           {/* Basic Info */}
           <div className="space-y-3">
-            <h2 className="text-base font-bold text-[#EE964B] lowercase border-b border-[#EE964B]/20 pb-2">
-              basic info
-            </h2>
-
+            <h2 className="text-base font-bold text-[#EE964B] lowercase border-b border-[#EE964B]/20 pb-2">basic info</h2>
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-1">
                 <Label className="lowercase text-[#0D3B66] font-semibold text-sm">name</Label>
                 {isEditing ? (
-                  <Input
-                    value={profile.name}
-                    onChange={(e) => setProfile({ ...profile, name: e.target.value })}
-                    className="lowercase bg-[#FDFAEC] border-[#EE964B]/30 text-sm"
-                  />
+                  <Input value={profile.name} onChange={(e) => setProfile({ ...profile, name: e.target.value })} className="lowercase bg-[#FDFAEC] border-[#EE964B]/30 text-sm" />
                 ) : (
                   <p className="text-[#0D3B66] lowercase py-1.5 font-medium text-sm">{profile.name || "not set"}</p>
                 )}
               </div>
-
               <div className="space-y-1">
                 <Label className="lowercase text-[#0D3B66] font-semibold text-sm">age</Label>
                 {isEditing ? (
-                  <Input
-                    type="number"
-                    value={profile.age}
-                    onChange={(e) => setProfile({ ...profile, age: e.target.value })}
-                    className="bg-[#FDFAEC] border-[#EE964B]/30 text-sm"
-                  />
+                  <Input type="number" value={profile.age} onChange={(e) => setProfile({ ...profile, age: e.target.value })} className="bg-[#FDFAEC] border-[#EE964B]/30 text-sm" />
                 ) : (
                   <p className="text-[#0D3B66] py-1.5 font-medium text-sm">{profile.age || "not set"}</p>
                 )}
               </div>
             </div>
-
             <div className="space-y-1">
               <Label className="lowercase text-[#0D3B66] font-semibold text-sm">alma mater</Label>
               {isEditing ? (
-                <Input
-                  value={profile.almaMater}
-                  onChange={(e) => setProfile({ ...profile, almaMater: e.target.value })}
-                  className="lowercase bg-[#FDFAEC] border-[#EE964B]/30 text-sm"
-                />
+                <Input value={profile.almaMater} onChange={(e) => setProfile({ ...profile, almaMater: e.target.value })} className="lowercase bg-[#FDFAEC] border-[#EE964B]/30 text-sm" />
               ) : (
                 <p className="text-[#0D3B66] lowercase py-1.5 font-medium text-sm">{profile.almaMater || "not set"}</p>
               )}
             </div>
-
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-1">
                 <Label className="lowercase text-[#0D3B66] font-semibold text-sm">gender</Label>
                 {isEditing ? (
-                  <Input
-                    value={profile.gender}
-                    onChange={(e) => setProfile({ ...profile, gender: e.target.value })}
-                    className="lowercase bg-[#FDFAEC] border-[#EE964B]/30 text-sm"
-                  />
+                  <Input value={profile.gender} onChange={(e) => setProfile({ ...profile, gender: e.target.value })} className="lowercase bg-[#FDFAEC] border-[#EE964B]/30 text-sm" />
                 ) : (
                   <p className="text-[#0D3B66] lowercase py-1.5 font-medium text-sm">{profile.gender || "not set"}</p>
                 )}
               </div>
-
               <div className="space-y-1">
                 <Label className="lowercase text-[#0D3B66] font-semibold text-sm">city</Label>
                 {isEditing ? (
-                  <Input
-                    value={profile.city}
-                    onChange={(e) => setProfile({ ...profile, city: e.target.value })}
-                    className="lowercase bg-[#FDFAEC] border-[#EE964B]/30 text-sm"
-                  />
+                  <Input value={profile.city} onChange={(e) => setProfile({ ...profile, city: e.target.value })} className="lowercase bg-[#FDFAEC] border-[#EE964B]/30 text-sm" />
                 ) : (
                   <p className="text-[#0D3B66] lowercase py-1.5 font-medium text-sm">{profile.city || "not set"}</p>
                 )}
@@ -190,31 +281,19 @@ export default function Profile() {
 
           {/* About */}
           <div className="space-y-3">
-            <h2 className="text-base font-bold text-[#EE964B] lowercase border-b border-[#EE964B]/20 pb-2">
-              about you
-            </h2>
-
+            <h2 className="text-base font-bold text-[#EE964B] lowercase border-b border-[#EE964B]/20 pb-2">about you</h2>
             <div className="space-y-1">
               <Label className="lowercase text-[#0D3B66] font-semibold text-sm">fun fact</Label>
               {isEditing ? (
-                <Textarea
-                  value={profile.funFact}
-                  onChange={(e) => setProfile({ ...profile, funFact: e.target.value })}
-                  className="lowercase bg-[#FDFAEC] border-[#EE964B]/30 min-h-20 text-sm"
-                />
+                <Textarea value={profile.funFact} onChange={(e) => setProfile({ ...profile, funFact: e.target.value })} className="lowercase bg-[#FDFAEC] border-[#EE964B]/30 min-h-20 text-sm" />
               ) : (
                 <p className="text-[#0D3B66] lowercase py-1.5 font-medium text-sm">{profile.funFact || "not set"}</p>
               )}
             </div>
-
             <div className="space-y-1">
               <Label className="lowercase text-[#0D3B66] font-semibold text-sm">looking for</Label>
               {isEditing ? (
-                <Textarea
-                  value={profile.lookingFor}
-                  onChange={(e) => setProfile({ ...profile, lookingFor: e.target.value })}
-                  className="lowercase bg-[#FDFAEC] border-[#EE964B]/30 min-h-20 text-sm"
-                />
+                <Textarea value={profile.lookingFor} onChange={(e) => setProfile({ ...profile, lookingFor: e.target.value })} className="lowercase bg-[#FDFAEC] border-[#EE964B]/30 min-h-20 text-sm" />
               ) : (
                 <p className="text-[#0D3B66] lowercase py-1.5 font-medium text-sm">{profile.lookingFor || "not set"}</p>
               )}
@@ -223,59 +302,35 @@ export default function Profile() {
 
           {/* Hobbies */}
           <div className="space-y-3">
-            <h2 className="text-base font-bold text-[#EE964B] lowercase border-b border-[#EE964B]/20 pb-2">
-              hobbies & interests
-            </h2>
-
+            <h2 className="text-base font-bold text-[#EE964B] lowercase border-b border-[#EE964B]/20 pb-2">hobbies & interests</h2>
             {isEditing ? (
               <>
                 <div className="flex flex-wrap gap-2">
                   {HOBBIES.map((hobby) => (
-                    <button
-                      key={hobby}
-                      onClick={() => toggleHobby(hobby)}
-                      className={`px-3 py-1.5 rounded-full lowercase text-xs transition-all font-semibold ${
-                        profile.hobbies.includes(hobby)
-                          ? 'bg-[#EE964B] text-white'
-                          : 'bg-white border-2 border-[#0D3B66]/15 text-[#0D3B66] hover:border-[#EE964B]'
-                      }`}
-                    >
+                    <button key={hobby} onClick={() => toggleHobby(hobby)}
+                      className={`px-3 py-1.5 rounded-full lowercase text-xs transition-all font-semibold ${profile.hobbies.includes(hobby) ? "bg-[#EE964B] text-white" : "bg-white border-2 border-[#0D3B66]/15 text-[#0D3B66] hover:border-[#EE964B]"}`}>
                       {hobby}
                     </button>
                   ))}
                 </div>
-
                 <div className="space-y-1.5 pt-1">
                   <Label className="lowercase text-[#0D3B66] font-semibold text-sm">add custom hobby</Label>
                   <div className="flex gap-2">
-                    <Input
-                      placeholder="e.g., pottery"
-                      value={profile.customHobby}
+                    <Input placeholder="e.g., pottery" value={profile.customHobby}
                       onChange={(e) => setProfile({ ...profile, customHobby: e.target.value })}
-                      onKeyPress={(e) => e.key === 'Enter' && (e.preventDefault(), addCustomHobby())}
-                      className="lowercase bg-[#FDFAEC] border-[#EE964B]/30 text-sm"
-                    />
-                    <Button
-                      onClick={addCustomHobby}
-                      className="bg-[#EE964B] hover:bg-[#EE964B]/90 text-white"
-                      size="sm"
-                    >
+                      onKeyDown={(e) => e.key === "Enter" && (e.preventDefault(), addCustomHobby())}
+                      className="lowercase bg-[#FDFAEC] border-[#EE964B]/30 text-sm" />
+                    <Button onClick={addCustomHobby} className="bg-[#EE964B] hover:bg-[#EE964B]/90 text-white" size="sm">
                       <Plus size={16} />
                     </Button>
                   </div>
                 </div>
-
                 {profile.hobbies.filter(h => !HOBBIES.includes(h)).length > 0 && (
                   <div className="flex flex-wrap gap-2">
                     {profile.hobbies.filter(h => !HOBBIES.includes(h)).map((hobby) => (
-                      <div
-                        key={hobby}
-                        className="px-3 py-1.5 rounded-full lowercase text-xs bg-[#EE964B] text-white font-semibold flex items-center gap-1.5"
-                      >
+                      <div key={hobby} className="px-3 py-1.5 rounded-full lowercase text-xs bg-[#EE964B] text-white font-semibold flex items-center gap-1.5">
                         {hobby}
-                        <button onClick={() => removeHobby(hobby)}>
-                          <X size={12} />
-                        </button>
+                        <button onClick={() => removeHobby(hobby)}><X size={12} /></button>
                       </div>
                     ))}
                   </div>
@@ -285,10 +340,7 @@ export default function Profile() {
               <div className="flex flex-wrap gap-2">
                 {profile.hobbies.length > 0 ? (
                   profile.hobbies.map((hobby) => (
-                    <span
-                      key={hobby}
-                      className="px-3 py-1.5 rounded-full lowercase text-xs bg-[#EE964B] text-white font-semibold"
-                    >
+                    <span key={hobby} className="px-3 py-1.5 rounded-full lowercase text-xs bg-[#EE964B] text-white font-semibold">
                       {hobby}
                     </span>
                   ))
@@ -297,6 +349,52 @@ export default function Profile() {
                 )}
               </div>
             )}
+          </div>
+
+          {/* Hobby Photos */}
+          <div className="space-y-3">
+            <h2 className="text-base font-bold text-[#EE964B] lowercase border-b border-[#EE964B]/20 pb-2">hobby photos</h2>
+            {profile.hobbies.length > 0 ? (
+              <div className="grid grid-cols-3 gap-2">
+                {profile.hobbies.map((hobby) => (
+                  <div key={hobby} className="relative">
+                    <div
+                      onClick={() => {
+                        if (!isEditing) return;
+                        setUploadingHobby(hobby);
+                        hobbyPhotoRef.current?.click();
+                      }}
+                      className={`aspect-square rounded-xl border-2 ${isEditing ? "border-dashed border-[#EE964B]/30 cursor-pointer hover:border-[#EE964B]" : "border-[#EE964B]/10"} flex flex-col items-center justify-center overflow-hidden bg-[#FDFAEC] transition-colors`}
+                    >
+                      {profile.hobbyPhotos[hobby] ? (
+                        <img src={profile.hobbyPhotos[hobby]} alt={hobby} className="w-full h-full object-cover" />
+                      ) : (
+                        <>
+                          <ImagePlus size={18} className="text-[#EE964B]/30 mb-1" />
+                          <span className="text-[8px] text-[#0D3B66]/40 lowercase font-semibold">{isEditing ? "add" : "no photo"}</span>
+                        </>
+                      )}
+                    </div>
+                    {isEditing && profile.hobbyPhotos[hobby] && (
+                      <button
+                        onClick={() => setProfile(prev => {
+                          const photos = { ...prev.hobbyPhotos };
+                          delete photos[hobby];
+                          return { ...prev, hobbyPhotos: photos };
+                        })}
+                        className="absolute -top-1 -right-1 w-5 h-5 bg-[#F95738] rounded-full flex items-center justify-center"
+                      >
+                        <X size={10} className="text-white" />
+                      </button>
+                    )}
+                    <p className="text-[9px] text-center text-[#0D3B66]/60 lowercase font-semibold mt-1 truncate">{hobby}</p>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <p className="text-[#0D3B66]/70 lowercase py-1.5 text-sm font-medium">add hobbies to upload photos</p>
+            )}
+            <input ref={hobbyPhotoRef} type="file" accept="image/*" className="hidden" onChange={handleHobbyPhotoUpload} />
           </div>
         </div>
       </div>

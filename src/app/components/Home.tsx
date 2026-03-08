@@ -1,190 +1,119 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { useNavigate } from "react-router";
 import { Button } from "./ui/button";
-import { Heart, X, Crown, ChevronLeft, ChevronRight } from "lucide-react";
+import { Input } from "./ui/input";
+import { Label } from "./ui/label";
+import {
+  Heart, X, Crown, ChevronLeft, ChevronRight, Filter,
+  Sparkles, Loader2, Users, SlidersHorizontal, Eye,
+  RefreshCw, Search, MapPin, Coffee
+} from "lucide-react";
 import { toast } from "sonner";
+import * as api from "@/lib/api";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "./ui/dialog";
+import { motion, AnimatePresence } from "motion/react";
 
-interface Photo {
-  url: string;
-  activity: string;
-}
-
-interface Profile {
+interface UserProfile {
   id: string;
   name: string;
-  age: number;
-  photos: Photo[];
+  age: string;
+  city: string;
+  almaMater: string;
+  gender: string;
+  funFact: string;
   lookingFor: string;
-  profilePic: string;
+  hobbies: string[];
+  profilePhoto: string;
+  hobbyPhotos: Record<string, string>;
+  personality: string;
 }
 
-// Large pool of hobby photos
-const HOBBY_PHOTOS: Photo[] = [
-  { url: "https://images.unsplash.com/photo-1653484596285-7f842613a023?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHx5b3VuZyUyMHdvbWFuJTIwaGlraW5nJTIwbW91bnRhaW4lMjB0cmFpbHxlbnwxfHx8fDE3NzI4NTQ2NjV8MA&ixlib=rb-4.1.0&q=80&w=1080&utm_source=figma&utm_medium=referral", activity: "hiking" },
-  { url: "https://images.unsplash.com/photo-1765966871032-7fe67d208761?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHx5b3VuZyUyMG1hbiUyMGNvb2tpbmclMjBraXRjaGVufGVufDF8fHx8MTc3Mjg1NDY2NXww&ixlib=rb-4.1.0&q=80&w=1080&utm_source=figma&utm_medium=referral", activity: "cooking" },
-  { url: "https://images.unsplash.com/photo-1607702705816-81497b0a9009?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHx3b21hbiUyMHJlYWRpbmclMjBib29rJTIwY2FmZXxlbnwxfHx8fDE3NzI4NTQ2NjZ8MA&ixlib=rb-4.1.0&q=80&w=1080&utm_source=figma&utm_medium=referral", activity: "reading" },
-  { url: "https://images.unsplash.com/photo-1610556301408-ce85ceb83861?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxtYW4lMjBwbGF5aW5nJTIwZ3VpdGFyJTIwbXVzaWN8ZW58MXx8fHwxNzcyODQ0NTYwfDA&ixlib=rb-4.1.0&q=80&w=1080&utm_source=figma&utm_medium=referral", activity: "music" },
-  { url: "https://images.unsplash.com/photo-1758274526138-4da003a5a936?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHx3b21hbiUyMHlvZ2ElMjBvdXRkb29ycyUyMHBhcmt8ZW58MXx8fHwxNzcyODU0NjY2fDA&ixlib=rb-4.1.0&q=80&w=1080&utm_source=figma&utm_medium=referral", activity: "yoga" },
-  { url: "https://images.unsplash.com/photo-1587819103231-f56107f62ad8?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHx5b3VuZyUyMG1hbiUyMHRyYXZlbGluZyUyMGJhY2twYWNrJTIwY2l0eXxlbnwxfHx8fDE3NzI4NTQ2Njd8MA&ixlib=rb-4.1.0&q=80&w=1080&utm_source=figma&utm_medium=referral", activity: "traveling" },
-  { url: "https://images.unsplash.com/photo-1635098995751-5fcc485996d7?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHx3b21hbiUyMHBhaW50aW5nJTIwYXJ0JTIwc3R1ZGlvfGVufDF8fHx8MTc3Mjg0ODY3NXww&ixlib=rb-4.1.0&q=80&w=1080&utm_source=figma&utm_medium=referral", activity: "art" },
-  { url: "https://images.unsplash.com/photo-1729281008800-539686eaedc0?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxtYW4lMjBmaXRuZXNzJTIwZ3lmJTIwd29ya291dHxlbnwxfHx8fDE3NzI4NTQ2Njd8MA&ixlib=rb-4.1.0&q=80&w=1080&utm_source=figma&utm_medium=referral", activity: "fitness" },
-  { url: "https://images.unsplash.com/photo-1766867245104-5c1d8f1aabc4?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHx3b21hbiUyMHBob3RvZ3JhcGh5JTIwY2FtZXJhJTIwb3V0ZG9vcnN8ZW58MXx8fHwxNzcyODU0NjY4fDA&ixlib=rb-4.1.0&q=80&w=1080&utm_source=figma&utm_medium=referral", activity: "photography" },
-  { url: "https://images.unsplash.com/photo-1753351050724-511764d227e3?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHx5b3VuZyUyMG1hbiUyMGNvZmZlZSUyMHNob3AlMjBzbWlsaW5nfGVufDF8fHx8MTc3Mjg1NDY2OHww&ixlib=rb-4.1.0&q=80&w=1080&utm_source=figma&utm_medium=referral", activity: "coffee" },
-  { url: "https://images.unsplash.com/photo-1763630051876-928346788268?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHx3b21hbiUyMGRhbmNpbmclMjBzYWxzYSUyMGNsdWJ8ZW58MXx8fHwxNzcyODU0NjY5fDA&ixlib=rb-4.1.0&q=80&w=1080&utm_source=figma&utm_medium=referral", activity: "dancing" },
-  { url: "https://images.unsplash.com/photo-1725563128279-6ae63e46dc9d?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxtYW4lMjByb2NrJTIwY2xpbWJpbmclMjBib3VsZGVyaW5nfGVufDF8fHx8MTc3Mjg1NDY2OXww&ixlib=rb-4.1.0&q=80&w=1080&utm_source=figma&utm_medium=referral", activity: "climbing" },
-  { url: "https://images.unsplash.com/photo-1623222316492-d7bddd11a0de?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHx3b21hbiUyMHJ1bm5pbmclMjBqb2dnaW5nJTIwdHJhaWx8ZW58MXx8fHwxNzcyODU0NjY5fDA&ixlib=rb-4.1.0&q=80&w=1080&utm_source=figma&utm_medium=referral", activity: "running" },
-  { url: "https://images.unsplash.com/photo-1660020140973-4a18a4b46d14?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxtYW4lMjBzdXJmaW5nJTIwb2NlYW4lMjB3YXZlc3xlbnwxfHx8fDE3NzI4NTQ2NzB8MA&ixlib=rb-4.1.0&q=80&w=1080&utm_source=figma&utm_medium=referral", activity: "surfing" },
-  { url: "https://images.unsplash.com/photo-1627662057514-f15bc58cc179?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHx3b21hbiUyMGJha2luZyUyMHBhc3RyaWVzJTIwa2l0Y2hlbnxlbnwxfHx8fDE3NzI4NTQ2NzB8MA&ixlib=rb-4.1.0&q=80&w=1080&utm_source=figma&utm_medium=referral", activity: "baking" },
-  { url: "https://images.unsplash.com/photo-1627837661889-6fc9434e12f6?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxtYW4lMjBza2F0ZWJvYXJkaW5nJTIwcGFyayUyMHVyYmFufGVufDF8fHx8MTc3Mjg1NDY3MHww&ixlib=rb-4.1.0&q=80&w=1080&utm_source=figma&utm_medium=referral", activity: "skateboarding" },
-  { url: "https://images.unsplash.com/photo-1761839257513-a921710a4291?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHx3b21hbiUyMGdhcmRlbmluZyUyMGZsb3dlcnMlMjBvdXRkb29yfGVufDF8fHx8MTc3Mjg1NDY3MXww&ixlib=rb-4.1.0&q=80&w=1080&utm_source=figma&utm_medium=referral", activity: "gardening" },
-  { url: "https://images.unsplash.com/photo-1762770646079-16a8fff60012?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxtYW4lMjBwbGF5aW5nJTIwYmFza2V0YmFsbCUyMGNvdXJ0fGVufDF8fHx8MTc3Mjg1NDY3MXww&ixlib=rb-4.1.0&q=80&w=1080&utm_source=figma&utm_medium=referral", activity: "basketball" },
-  { url: "https://images.unsplash.com/photo-1550592704-6c76defa9985?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHx3b21hbiUyMHdyaXRpbmclMjBqb3VybmFsJTIwbm90ZWJvb2t8ZW58MXx8fHwxNzcyODU0NjcyfDA&ixlib=rb-4.1.0&q=80&w=1080&utm_source=figma&utm_medium=referral", activity: "writing" },
-  { url: "https://images.unsplash.com/photo-1633431305692-00a2f1a5c3d5?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxtYW4lMjBjYW1waW5nJTIwdGVudCUyMG5hdHVyZXxlbnwxfHx8fDE3NzI4NTQ2NzJ8MA&ixlib=rb-4.1.0&q=80&w=1080&utm_source=figma&utm_medium=referral", activity: "camping" },
-  { url: "https://images.unsplash.com/photo-1681295687070-f138b5aa2b1a?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHx3b21hbiUyMGN5Y2xpbmclMjBiaWN5Y2xlJTIwcm9hZHxlbnwxfHx8fDE3NzI4NTQ2NzJ8MA&ixlib=rb-4.1.0&q=80&w=1080&utm_source=figma&utm_medium=referral", activity: "cycling" },
-  { url: "https://images.unsplash.com/photo-1772487489049-42159a5cdcbb?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxtYW4lMjBwb3R0ZXJ5JTIwY2VyYW1pY3MlMjBjcmFmdGluZ3xlbnwxfHx8fDE3NzI4NTQ2NzN8MA&ixlib=rb-4.1.0&q=80&w=1080&utm_source=figma&utm_medium=referral", activity: "pottery" },
-  { url: "https://images.unsplash.com/photo-1758657209554-fa7c83d10f89?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHx3b21hbiUyMHN3aW1taW5nJTIwcG9vbCUyMHNwb3J0fGVufDF8fHx8MTc3Mjg1NDY3M3ww&ixlib=rb-4.1.0&q=80&w=1080&utm_source=figma&utm_medium=referral", activity: "swimming" },
-  { url: "https://images.unsplash.com/photo-1758599668429-121d54188b9c?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxtYW4lMjB2b2x1bnRlZXJpbmclMjBjb21tdW5pdHklMjBzZXJ2aWNlfGVufDF8fHx8MTc3Mjg1NDY3M3ww&ixlib=rb-4.1.0&q=80&w=1080&utm_source=figma&utm_medium=referral", activity: "volunteering" },
-  { url: "https://images.unsplash.com/photo-1758598738260-4893695cead9?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHx3b21hbiUyMHBsYXlpbmclMjB2aWRlbyUyMGdhbWVzJTIwY29udHJvbGxlcnxlbnwxfHx8fDE3NzI4NTQ2NzR8MA&ixlib=rb-4.1.0&q=80&w=1080&utm_source=figma&utm_medium=referral", activity: "gaming" },
-];
+/* ─── Match Celebration Component ─── */
+function MatchCelebration({ matchName, onDismiss }: { matchName: string; onDismiss: () => void }) {
+  useEffect(() => {
+    const timer = setTimeout(onDismiss, 3000);
+    return () => clearTimeout(timer);
+  }, [onDismiss]);
 
-// Profile picture pool
-const PROFILE_PICS = [
-  "https://images.unsplash.com/photo-1762522921456-cdfe882d36c3?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHx5b3VuZyUyMHdvbWFuJTIwcG9ydHJhaXQlMjBoZWFkc2hvdCUyMHNtaWxpbmd8ZW58MXx8fHwxNzcyODU0Njc0fDA&ixlib=rb-4.1.0&q=80&w=1080&utm_source=figma&utm_medium=referral",
-  "https://images.unsplash.com/photo-1628619487925-e9b8fc4c6b08?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHx5b3VuZyUyMG1hbiUyMHBvcnRyYWl0JTIwaGVhZHNob3QlMjBjYXN1YWx8ZW58MXx8fHwxNzcyODQ4Nzc2fDA&ixlib=rb-4.1.0&q=80&w=1080&utm_source=figma&utm_medium=referral",
-  "https://images.unsplash.com/photo-1770922808025-1c3b13a37679?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHx3b21hbiUyMHBvcnRyYWl0JTIwZ3JhZHVhdGUlMjBzdHVkZW50fGVufDF8fHx8MTc3Mjg1NDY3NXww&ixlib=rb-4.1.0&q=80&w=1080&utm_source=figma&utm_medium=referral",
-  "https://images.unsplash.com/photo-1532272278764-53cd1fe53f72?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxtYW4lMjBwb3J0cmFpdCUyMHByb2Zlc3Npb25hbCUyMHlvdW5nfGVufDF8fHx8MTc3Mjg1NDY3Nnww&ixlib=rb-4.1.0&q=80&w=1080&utm_source=figma&utm_medium=referral",
-  "https://images.unsplash.com/photo-1671766013225-2883b2b994ed?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHx3b21hbiUyMHBvcnRyYWl0JTIwY2FzdWFsJTIwb3V0ZG9vciUyMHNtaWxlfGVufDF8fHx8MTc3Mjg1NDY3Nnww&ixlib=rb-4.1.0&q=80&w=1080&utm_source=figma&utm_medium=referral",
-  "https://images.unsplash.com/photo-1764816657425-b3c79b616d14?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxtYW4lMjBwb3J0cmFpdCUyMGZyaWVuZGx5JTIwb3V0ZG9vcnxlbnwxfHx8fDE3NzI4NTQ2NzZ8MA&ixlib=rb-4.1.0&q=80&w=1080&utm_source=figma&utm_medium=referral",
-  "https://images.unsplash.com/photo-1643700419516-6294a9c41ab8?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHx3b21hbiUyMHBvcnRyYWl0JTIwc2VsZmllJTIwdXJiYW58ZW58MXx8fHwxNzcyODU0Njc3fDA&ixlib=rb-4.1.0&q=80&w=1080&utm_source=figma&utm_medium=referral",
-  "https://images.unsplash.com/photo-1758874574397-e56dfcfc116d?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxtYW4lMjBwb3J0cmFpdCUyMHNtaWxlJTIwY29uZmlkZW50fGVufDF8fHx8MTc3Mjg1NDY3N3ww&ixlib=rb-4.1.0&q=80&w=1080&utm_source=figma&utm_medium=referral",
-  "https://images.unsplash.com/photo-1714730772839-3eb86740bf26?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHx3b21hbiUyMHBvcnRyYWl0JTIwd2FybSUyMG5hdHVyYWwlMjBsaWdodHxlbnwxfHx8fDE3NzI4NTQ2Nzd8MA&ixlib=rb-4.1.0&q=80&w=1080&utm_source=figma&utm_medium=referral",
-  "https://images.unsplash.com/photo-1767647983941-f8d8a8ab9d55?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxtYW4lMjBwb3J0cmFpdCUyMGNhc3VhbCUyMGNvb2wlMjBzdHlsZXxlbnwxfHx8fDE3NzI4NTQ2Nzd8MA&ixlib=rb-4.1.0&q=80&w=1080&utm_source=figma&utm_medium=referral",
-];
+  const confettiPieces = Array.from({ length: 40 }, (_, i) => ({
+    id: i,
+    left: Math.random() * 100,
+    delay: Math.random() * 1.5,
+    duration: 1.5 + Math.random() * 2,
+    size: 6 + Math.random() * 10,
+    color: ["#EE964B", "#F4D35E", "#E8556D", "#0D3B66", "#F95738", "#4CAF50", "#9C27B0"][i % 7],
+  }));
 
-const NAMES = [
-  "emma", "liam", "sophia", "noah", "olivia",
-  "james", "ava", "ethan", "mia", "lucas",
-  "charlotte", "mason", "harper", "ben", "lily"
-];
+  return (
+    <motion.div
+      className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 backdrop-blur-sm"
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      onClick={onDismiss}
+    >
+      <style>{`
+        @keyframes confettiFall {
+          0% { transform: translateY(-20vh) rotate(0deg); opacity: 1; }
+          100% { transform: translateY(110vh) rotate(720deg); opacity: 0; }
+        }
+        @keyframes confettiSway {
+          0%, 100% { margin-left: 0; }
+          50% { margin-left: 30px; }
+        }
+        .confetti-piece {
+          position: absolute;
+          top: -20px;
+          border-radius: 50%;
+          animation: confettiFall var(--fall-duration) ease-in var(--fall-delay) forwards,
+                     confettiSway 2s ease-in-out var(--fall-delay) infinite;
+        }
+      `}</style>
 
-const LOOKING_FOR = [
-  "looking for someone to grab coffee and explore the city with on weekends!",
-  "hoping to find a hiking buddy who's down for trail adventures and good conversations",
-  "want a gym partner who also loves trying new restaurants afterwards",
-  "searching for a creative soul to visit galleries, make art, and share playlists with",
-  "need a study buddy who also knows how to have fun - board games, anyone?",
-  "looking for fellow foodies who want to cook together and try new cuisines",
-  "want to find someone to explore live music, open mics, and hidden gem cafes",
-  "hoping to meet people who love outdoor adventures - camping, kayaking, you name it!",
-  "searching for a travel buddy to plan weekend getaways and spontaneous road trips",
-  "looking for genuine friendships - someone to laugh with over brunch and late-night talks",
-  "want a running buddy who's also into brunch and chill netflix nights",
-  "looking for someone who's into volunteering and making a difference together",
-  "need a friend who loves both cozy book clubs and wild dance nights",
-  "searching for someone to share pottery classes and farmers market mornings with",
-  "hoping to find a fellow grad student who gets the struggle and wants to have fun too",
-];
+      {confettiPieces.map((piece) => (
+        <div
+          key={piece.id}
+          className="confetti-piece"
+          style={{
+            left: `${piece.left}%`,
+            width: piece.size,
+            height: piece.size,
+            backgroundColor: piece.color,
+            "--fall-delay": `${piece.delay}s`,
+            "--fall-duration": `${piece.duration}s`,
+          } as React.CSSProperties}
+        />
+      ))}
 
-// Seeded random for consistent but varied results
-function seededRandom(seed: number) {
-  let s = seed + 100000;
-  // Warm up the generator
-  for (let i = 0; i < 5; i++) {
-    s = (s * 16807) % 2147483647;
-  }
-  return () => {
-    s = (s * 16807) % 2147483647;
-    return (s - 1) / 2147483646;
-  };
+      <motion.div
+        className="bg-white rounded-3xl p-8 mx-6 text-center shadow-2xl max-w-sm w-full relative z-10"
+        initial={{ scale: 0.3, opacity: 0 }}
+        animate={{ scale: 1, opacity: 1 }}
+        exit={{ scale: 0.3, opacity: 0 }}
+        transition={{ type: "spring", damping: 15, stiffness: 200 }}
+      >
+        <motion.div
+          initial={{ rotate: 0 }}
+          animate={{ rotate: [0, -10, 10, -10, 10, 0] }}
+          transition={{ duration: 0.6, delay: 0.3 }}
+        >
+          <Sparkles className="mx-auto mb-3 text-[#F4D35E]" size={52} />
+        </motion.div>
+        <h2 className="text-2xl font-black text-[#0D3B66] lowercase mb-2">it&apos;s a match!</h2>
+        <p className="text-[#EE964B] font-bold text-lg lowercase mb-1">you and {matchName} are now friends!</p>
+        <p className="text-sm text-[#0D3B66]/50 lowercase font-medium">tap anywhere to dismiss</p>
+      </motion.div>
+    </motion.div>
+  );
 }
 
-function generateProfiles(): Profile[] {
-  const profiles: Profile[] = [];
-  for (let i = 0; i < 50; i++) {
-    const rand = seededRandom(i * 7 + 42);
-    // Each profile gets 1-8 random hobby photos
-    const photoCount = Math.floor(rand() * 8) + 1; // 1 to 8
-    const shuffled = [...HOBBY_PHOTOS].sort(() => rand() - 0.5);
-    const photos = shuffled.slice(0, photoCount);
-
-    profiles.push({
-      id: `profile-${i}`,
-      name: NAMES[i % NAMES.length],
-      age: Math.floor(rand() * 10) + 22,
-      photos,
-      lookingFor: LOOKING_FOR[i % LOOKING_FOR.length],
-      profilePic: PROFILE_PICS[i % PROFILE_PICS.length],
-    });
-  }
-  return profiles;
-}
-
-const DAILY_REC_LIMIT = 10;
-
-function getTodayString(): string {
-  return new Date().toISOString().split("T")[0];
-}
-
-interface DailyRecsData {
-  date: string;
-  profileIds: string[];
-}
-
-function getDailyRecs(allProfiles: Profile[]): Profile[] {
-  const isPremium = localStorage.getItem("friendli_premium") === "true";
-  if (isPremium) return allProfiles;
-
-  const today = getTodayString();
-  const storedRaw = localStorage.getItem("friendli_daily_recs");
-  let stored: DailyRecsData | null = null;
-
-  if (storedRaw) {
-    try { stored = JSON.parse(storedRaw); } catch { stored = null; }
-  }
-
-  // If we already have recs for today, return those
-  if (stored && stored.date === today) {
-    return stored.profileIds
-      .map((id) => allProfiles.find((p) => p.id === id))
-      .filter(Boolean) as Profile[];
-  }
-
-  // New day — pick 10 new profiles
-  // Get all previously shown profile IDs across all days
-  const historyRaw = localStorage.getItem("friendli_shown_history");
-  let shownHistory: string[] = [];
-  if (historyRaw) {
-    try { shownHistory = JSON.parse(historyRaw); } catch { shownHistory = []; }
-  }
-
-  // Filter to profiles not yet shown
-  let available = allProfiles.filter((p) => !shownHistory.includes(p.id));
-
-  // If we've exhausted all profiles, reset the history
-  if (available.length < DAILY_REC_LIMIT) {
-    shownHistory = [];
-    localStorage.setItem("friendli_shown_history", JSON.stringify([]));
-    available = allProfiles;
-  }
-
-  // Shuffle available using today's date as seed for consistent daily order
-  const daySeed = today.split("-").reduce((acc, v) => acc + parseInt(v), 0);
-  const dayRand = seededRandom(daySeed);
-  const shuffled = [...available].sort(() => dayRand() - 0.5);
-  const dailyPicks = shuffled.slice(0, DAILY_REC_LIMIT);
-  const dailyIds = dailyPicks.map((p) => p.id);
-
-  // Save today's recs
-  localStorage.setItem("friendli_daily_recs", JSON.stringify({ date: today, profileIds: dailyIds }));
-
-  // Update shown history
-  const newHistory = [...shownHistory, ...dailyIds];
-  localStorage.setItem("friendli_shown_history", JSON.stringify(newHistory));
-
-  return dailyPicks;
-}
-
-function PhotoCarousel({ photos }: { photos: Photo[] }) {
+/* ─── Photo Carousel ─── */
+function PhotoCarousel({ photos }: { photos: { url: string; label: string }[] }) {
   const [current, setCurrent] = useState(0);
   const touchStartX = useRef<number | null>(null);
   const touchEndX = useRef<number | null>(null);
@@ -193,12 +122,8 @@ function PhotoCarousel({ photos }: { photos: Photo[] }) {
     if (index >= 0 && index < photos.length) setCurrent(index);
   }, [photos.length]);
 
-  const handleTouchStart = (e: React.TouchEvent) => {
-    touchStartX.current = e.targetTouches[0].clientX;
-  };
-  const handleTouchMove = (e: React.TouchEvent) => {
-    touchEndX.current = e.targetTouches[0].clientX;
-  };
+  const handleTouchStart = (e: React.TouchEvent) => { touchStartX.current = e.targetTouches[0].clientX; };
+  const handleTouchMove = (e: React.TouchEvent) => { touchEndX.current = e.targetTouches[0].clientX; };
   const handleTouchEnd = () => {
     if (touchStartX.current !== null && touchEndX.current !== null) {
       const diff = touchStartX.current - touchEndX.current;
@@ -212,26 +137,28 @@ function PhotoCarousel({ photos }: { photos: Photo[] }) {
   const handleClick = (e: React.MouseEvent<HTMLDivElement>) => {
     const rect = e.currentTarget.getBoundingClientRect();
     const x = e.clientX - rect.left;
-    if (x < rect.width / 2) {
-      goTo(current - 1);
-    } else {
-      goTo(current + 1);
-    }
+    if (x < rect.width / 2) goTo(current - 1);
+    else goTo(current + 1);
   };
+
+  if (photos.length === 0) {
+    return (
+      <div className="aspect-square bg-[#FDFAEC] flex items-center justify-center">
+        <Users size={48} className="text-[#0D3B66]/20" />
+      </div>
+    );
+  }
 
   if (photos.length === 1) {
     return (
       <div className="relative">
         <div className="aspect-square relative overflow-hidden">
-          <img
-            src={photos[0].url}
-            alt={photos[0].activity}
-            className="w-full h-full object-cover"
-            draggable={false}
-          />
-          <div className="absolute bottom-3 right-3 bg-[#EE964B] text-white px-4 py-1.5 rounded-full shadow-lg lowercase font-bold text-sm">
-            {photos[0].activity}
-          </div>
+          <img src={photos[0].url} alt={photos[0].label} className="w-full h-full object-cover" draggable={false} />
+          {photos[0].label && (
+            <div className="absolute bottom-3 right-3 bg-[#EE964B] text-white px-4 py-1.5 rounded-full shadow-lg lowercase font-bold text-sm">
+              {photos[0].label}
+            </div>
+          )}
         </div>
       </div>
     );
@@ -239,18 +166,13 @@ function PhotoCarousel({ photos }: { photos: Photo[] }) {
 
   return (
     <div className="relative">
-      {/* Instagram-style progress bars */}
       <div className="absolute top-2 left-2 right-2 z-10 flex gap-1">
         {photos.map((_, i) => (
           <div key={i} className="flex-1 h-[3px] rounded-full bg-white/35 overflow-hidden">
-            <div
-              className={`h-full rounded-full transition-all duration-300 ${i <= current ? 'bg-white w-full' : 'w-0'}`}
-            />
+            <div className={`h-full rounded-full transition-all duration-300 ${i <= current ? "bg-white w-full" : "w-0"}`} />
           </div>
         ))}
       </div>
-
-      {/* Photo */}
       <div
         className="aspect-square relative overflow-hidden cursor-pointer select-none"
         onTouchStart={handleTouchStart}
@@ -258,32 +180,23 @@ function PhotoCarousel({ photos }: { photos: Photo[] }) {
         onTouchEnd={handleTouchEnd}
         onClick={handleClick}
       >
-        <img
-          src={photos[current].url}
-          alt={photos[current].activity}
-          className="w-full h-full object-cover transition-opacity duration-200"
-          draggable={false}
-        />
-        {/* Activity bubble */}
-        <div className="absolute bottom-3 right-3 bg-[#EE964B] text-white px-4 py-1.5 rounded-full shadow-lg lowercase font-bold text-sm">
-          {photos[current].activity}
-        </div>
-
-        {/* Left arrow */}
+        <img src={photos[current].url} alt={photos[current].label} className="w-full h-full object-cover transition-opacity duration-200" draggable={false} />
+        {photos[current].label && (
+          <div className="absolute bottom-3 right-3 bg-[#EE964B] text-white px-4 py-1.5 rounded-full shadow-lg lowercase font-bold text-sm">
+            {photos[current].label}
+          </div>
+        )}
         {current > 0 && (
           <div className="absolute left-2 top-1/2 -translate-y-1/2 w-8 h-8 rounded-full bg-black/30 flex items-center justify-center">
             <ChevronLeft size={20} className="text-white" />
           </div>
         )}
-        {/* Right arrow */}
         {current < photos.length - 1 && (
           <div className="absolute right-2 top-1/2 -translate-y-1/2 w-8 h-8 rounded-full bg-black/30 flex items-center justify-center">
             <ChevronRight size={20} className="text-white" />
           </div>
         )}
       </div>
-
-      {/* Photo counter */}
       <div className="absolute bottom-3 left-3 bg-black/50 text-white text-xs font-bold px-2.5 py-1 rounded-full">
         {current + 1}/{photos.length}
       </div>
@@ -291,178 +204,540 @@ function PhotoCarousel({ photos }: { photos: Photo[] }) {
   );
 }
 
-function ProfileCard({ profile, onFriendify, onBye, isInteracted }: { 
-  profile: Profile; 
-  onFriendify: () => void; 
+/* ─── Profile Card ─── */
+function ProfileCard({ user, onFriendify, onBye, isInteracted, commonHobbiesCount }: {
+  user: UserProfile;
+  onFriendify: () => void;
   onBye: () => void;
   isInteracted: boolean;
+  commonHobbiesCount: number;
 }) {
+  const photos: { url: string; label: string }[] = [];
+  if (user.profilePhoto) photos.push({ url: user.profilePhoto, label: "" });
+  if (user.hobbyPhotos) {
+    for (const [hobby, url] of Object.entries(user.hobbyPhotos)) {
+      if (url) photos.push({ url, label: hobby });
+    }
+  }
+
   return (
-    <div className={`bg-white rounded-2xl shadow-lg overflow-hidden transition-opacity ${isInteracted ? 'opacity-50 pointer-events-none' : ''}`}>
-      {/* Header with profile pic, name, age */}
+    <div className={`bg-white rounded-2xl shadow-lg overflow-hidden transition-opacity ${isInteracted ? "opacity-50 pointer-events-none" : ""}`}>
       <div className="px-4 pt-4 pb-2 flex items-center gap-3">
-        <img 
-          src={profile.profilePic} 
-          alt={profile.name}
-          className="w-11 h-11 rounded-full object-cover border-2 border-[#EE964B]"
-        />
-        <div>
-          <h3 className="text-base font-bold text-[#0D3B66] lowercase">{profile.name}, {profile.age}</h3>
+        {user.profilePhoto ? (
+          <img src={user.profilePhoto} alt={user.name} className="w-11 h-11 rounded-full object-cover border-2 border-[#EE964B]" />
+        ) : (
+          <div className="w-11 h-11 rounded-full bg-[#EE964B]/20 flex items-center justify-center border-2 border-[#EE964B]">
+            <span className="text-[#EE964B] font-bold text-lg">{user.name?.[0]?.toUpperCase() || "?"}</span>
+          </div>
+        )}
+        <div className="flex-1 min-w-0">
+          <h3 className="text-base font-bold text-[#0D3B66] lowercase">{user.name}, {user.age}</h3>
+          <p className="text-xs text-[#0D3B66]/50 lowercase font-medium">{user.city}{user.almaMater ? ` - ${user.almaMater}` : ""}</p>
         </div>
+        {commonHobbiesCount > 0 && (
+          <div className="flex items-center gap-1 px-2.5 py-1 rounded-full bg-[#4CAF50]/10 border border-[#4CAF50]/20 shrink-0">
+            <Sparkles size={12} className="text-[#4CAF50]" />
+            <span className="text-[#4CAF50] text-xs font-bold lowercase">{commonHobbiesCount} {commonHobbiesCount === 1 ? "hobby" : "hobbies"} in common</span>
+          </div>
+        )}
       </div>
 
-      {/* Image carousel with activity labels */}
-      <PhotoCarousel photos={profile.photos} />
+      <PhotoCarousel photos={photos} />
 
-      {/* Looking for section */}
+      {user.hobbies && user.hobbies.length > 0 && (
+        <div className="px-4 pt-2 flex flex-wrap gap-1.5">
+          {user.hobbies.slice(0, 6).map((hobby) => (
+            <span key={hobby} className="px-2.5 py-1 rounded-full bg-[#EE964B]/10 text-[#EE964B] text-xs lowercase font-semibold">
+              {hobby}
+            </span>
+          ))}
+          {user.hobbies.length > 6 && (
+            <span className="px-2.5 py-1 rounded-full bg-[#0D3B66]/5 text-[#0D3B66]/50 text-xs lowercase font-semibold">
+              +{user.hobbies.length - 6} more
+            </span>
+          )}
+        </div>
+      )}
+
       <div className="px-4 pt-3 pb-2">
-        <p className="text-[#0D3B66] text-sm lowercase leading-relaxed font-medium">{profile.lookingFor}</p>
+        <p className="text-[#0D3B66] text-sm lowercase leading-relaxed font-medium">{user.lookingFor}</p>
       </div>
 
-      {/* Action buttons */}
+      {user.funFact && (
+        <div className="px-4 pb-2">
+          <p className="text-xs text-[#0D3B66]/60 lowercase font-medium italic">fun fact: {user.funFact}</p>
+        </div>
+      )}
+
       <div className="px-4 pb-4 pt-2 flex gap-3">
-        <Button
-          onClick={onBye}
-          className="flex-1 bg-[#E8556D] hover:bg-[#C51E3A] text-white lowercase py-5 text-sm font-bold"
-        >
-          <X className="mr-1.5" size={18} />
-          bye
+        <Button onClick={onBye} className="flex-1 bg-[#E8556D] hover:bg-[#C51E3A] text-white lowercase py-5 text-sm font-bold">
+          <X className="mr-1.5" size={18} /> bye
         </Button>
-        <Button
-          onClick={onFriendify}
-          className="flex-1 bg-[#EE964B] hover:bg-[#F95738] text-white lowercase py-5 text-sm font-bold"
-        >
-          <Heart className="mr-1.5" size={18} />
-          friendify
+        <Button onClick={onFriendify} className="flex-1 bg-[#EE964B] hover:bg-[#F95738] text-white lowercase py-5 text-sm font-bold">
+          <Heart className="mr-1.5" size={18} /> friendify
         </Button>
       </div>
     </div>
   );
 }
 
+interface Filters {
+  ageMin: string;
+  ageMax: string;
+  city: string;
+  hobbies: string[];
+  personality: string;
+}
+
 export default function Home() {
   const navigate = useNavigate();
-  const [rejectedProfiles, setRejectedProfiles] = useState<string[]>([]);
-  const [friendifiedProfiles, setFriendifiedProfiles] = useState<string[]>([]);
-  const [allProfiles] = useState<Profile[]>(() => generateProfiles());
-  const [dailyProfiles, setDailyProfiles] = useState<Profile[]>([]);
-  const currentUser = JSON.parse(localStorage.getItem('friendli_user') || '{}');
+  const [users, setUsers] = useState<UserProfile[]>([]);
+  const [interactedIds, setInteractedIds] = useState<Set<string>>(new Set());
+  const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
+  const [showFilters, setShowFilters] = useState(false);
+  const [showWhoLikedYou, setShowWhoLikedYou] = useState(false);
+  const [whoLikedYou, setWhoLikedYou] = useState<UserProfile[]>([]);
+  const [filters, setFilters] = useState<Filters>({ ageMin: "", ageMax: "", city: "", hobbies: [], personality: "" });
+  const currentUser = api.getCurrentUser();
+  const [premiumStatus, setPremiumStatus] = useState<{ isPremium: boolean; daysRemaining: number }>({ isPremium: false, daysRemaining: 0 });
 
-  const isPremium = localStorage.getItem("friendli_premium") === "true";
+  // Slide-out animation state
+  const [slidingOut, setSlidingOut] = useState<{ id: string; direction: "left" | "right" } | null>(null);
+
+  // Match celebration state
+  const [matchCelebration, setMatchCelebration] = useState<{ name: string } | null>(null);
+
+  // Pull-to-refresh state
+  const scrollContainerRef = useRef<HTMLDivElement>(null);
+  const pullStartY = useRef<number | null>(null);
+  const [pullDistance, setPullDistance] = useState(0);
+  const isPulling = useRef(false);
+
+  const DAILY_REC_LIMIT = 10;
+  const PULL_THRESHOLD = 80;
 
   useEffect(() => {
-    const saved = localStorage.getItem("friendli_rejected");
-    if (saved) setRejectedProfiles(JSON.parse(saved));
-    const savedFriends = localStorage.getItem("friendli_friendified");
-    if (savedFriends) setFriendifiedProfiles(JSON.parse(savedFriends));
-    // Load daily recs
-    setDailyProfiles(getDailyRecs(allProfiles));
-  }, [allProfiles]);
+    loadData();
+  }, []);
 
-  const handleBye = (profileId: string) => {
-    const updated = [...rejectedProfiles, profileId];
-    setRejectedProfiles(updated);
-    localStorage.setItem("friendli_rejected", JSON.stringify(updated));
-    toast("bye! maybe next time", { duration: 1500 });
-  };
+  const loadData = async () => {
+    if (!currentUser) return;
+    setLoading(true);
+    try {
+      const [discoverResult, interactionsResult, premiumResult] = await Promise.all([
+        api.discoverUsers(currentUser.id),
+        api.getInteractions(currentUser.id),
+        api.checkPremium(currentUser.id).catch(() => ({ isPremium: false, daysRemaining: 0 })),
+      ]);
 
-  const handleFriendify = (profileId: string, name: string) => {
-    const updated = [...friendifiedProfiles, profileId];
-    setFriendifiedProfiles(updated);
-    localStorage.setItem("friendli_friendified", JSON.stringify(updated));
+      setPremiumStatus(premiumResult);
 
-    // Check for match (50% chance for demo)
-    const isMatch = Math.random() > 0.5;
-    if (isMatch) {
-      const matches = JSON.parse(localStorage.getItem("friendli_matches") || "[]");
-      matches.push({ profileId, name, timestamp: Date.now() });
-      localStorage.setItem("friendli_matches", JSON.stringify(matches));
+      const interacted = new Set<string>([
+        ...(interactionsResult.sent || []),
+        ...(interactionsResult.rejected || []),
+      ]);
+      setInteractedIds(interacted);
 
-      // Create a chat entry for this match
-      const profile = allProfiles.find(p => p.id === profileId);
-      const chats = JSON.parse(localStorage.getItem("friendli_chats") || "[]");
-      const chatExists = chats.some((c: { userId: string }) => c.userId === profileId);
-      if (!chatExists && profile) {
-        const newChat = {
-          id: `chat-${Date.now()}`,
-          userId: profileId,
-          userName: name,
-          userPhoto: profile.profilePic,
-          messages: [],
-          isNewMatch: true,
-          matchedAt: Date.now(),
-        };
-        chats.push(newChat);
-        localStorage.setItem("friendli_chats", JSON.stringify(chats));
-
-        // Also persist to server
-        fetch(`https://vaqvxkjelzrzwbtdohsa.supabase.co/functions/v1/make-server-50b042b1/chats`, {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZhcXZ4a2plbHpyendidGRvaHNhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzI4NDU5NzQsImV4cCI6MjA4ODQyMTk3NH0.JzR5ankoUQtOg-uZSgJwsACFlI1eS8j0NRN4HNa4144`,
-          },
-          body: JSON.stringify({
-            chatId: newChat.id,
-            userId: currentUser.id,
-            matchedUserId: profileId,
-            userName: name,
-            userPhoto: profile.profilePic,
-          }),
-        }).catch((err) => console.log("Error persisting chat to server:", err));
-      }
-
-      toast(`it's a match! you and ${name} are now friends!`, {
-        duration: 3000,
-        style: { background: "#EE964B", color: "white", fontWeight: "bold" },
-      });
-    } else {
-      toast(`friendify sent to ${name}!`, { duration: 1500 });
+      const available = (discoverResult.users || []).filter(
+        (u: UserProfile) => !interacted.has(u.id)
+      );
+      setUsers(available);
+    } catch (err) {
+      console.error("Error loading discover:", err);
+      toast.error("failed to load profiles");
+    } finally {
+      setLoading(false);
+      setRefreshing(false);
     }
   };
 
+  const handleRefresh = async () => {
+    setRefreshing(true);
+    await loadData();
+    toast("profiles refreshed!", { duration: 1500 });
+  };
+
+  // Pull-to-refresh handlers
+  const handlePullTouchStart = (e: React.TouchEvent) => {
+    const container = scrollContainerRef.current;
+    if (container && container.scrollTop <= 0) {
+      pullStartY.current = e.touches[0].clientY;
+      isPulling.current = true;
+    }
+  };
+
+  const handlePullTouchMove = (e: React.TouchEvent) => {
+    if (!isPulling.current || pullStartY.current === null) return;
+    const container = scrollContainerRef.current;
+    if (container && container.scrollTop > 0) {
+      isPulling.current = false;
+      setPullDistance(0);
+      return;
+    }
+    const diff = e.touches[0].clientY - pullStartY.current;
+    if (diff > 0) {
+      setPullDistance(Math.min(diff * 0.5, 120));
+    }
+  };
+
+  const handlePullTouchEnd = () => {
+    if (pullDistance >= PULL_THRESHOLD && !refreshing) {
+      handleRefresh();
+    }
+    pullStartY.current = null;
+    isPulling.current = false;
+    setPullDistance(0);
+  };
+
+  const getCommonHobbiesCount = (userHobbies: string[]): number => {
+    if (!currentUser?.hobbies || !userHobbies) return 0;
+    return userHobbies.filter((h) => currentUser.hobbies.includes(h)).length;
+  };
+
+  const getFilteredUsers = (): UserProfile[] => {
+    let filtered = users;
+
+    if (filters.ageMin) filtered = filtered.filter(u => parseInt(u.age) >= parseInt(filters.ageMin));
+    if (filters.ageMax) filtered = filtered.filter(u => parseInt(u.age) <= parseInt(filters.ageMax));
+    if (filters.city) filtered = filtered.filter(u => u.city?.toLowerCase().includes(filters.city.toLowerCase()));
+    if (filters.hobbies.length > 0) {
+      filtered = filtered.filter(u => u.hobbies && filters.hobbies.some(h => u.hobbies.includes(h)));
+    }
+    if (filters.personality && filters.personality !== "no preference") {
+      filtered = filtered.filter(u => u.personality === filters.personality);
+    }
+
+    // Priority matching for premium: sort by hobby overlap
+    if (premiumStatus.isPremium && currentUser?.hobbies) {
+      filtered = [...filtered].sort((a, b) => {
+        const aOverlap = a.hobbies?.filter((h: string) => currentUser.hobbies.includes(h)).length || 0;
+        const bOverlap = b.hobbies?.filter((h: string) => currentUser.hobbies.includes(h)).length || 0;
+        return bOverlap - aOverlap;
+      });
+    }
+
+    if (!premiumStatus.isPremium) filtered = filtered.slice(0, DAILY_REC_LIMIT);
+    return filtered;
+  };
+
+  const handleFriendify = async (userId: string) => {
+    if (!currentUser) return;
+    try {
+      // Animate slide out to the right
+      setSlidingOut({ id: userId, direction: "right" });
+      await new Promise((resolve) => setTimeout(resolve, 300));
+
+      setSlidingOut(null);
+      setInteractedIds(prev => new Set([...prev, userId]));
+      setUsers(prev => prev.filter(u => u.id !== userId));
+
+      const result = await api.friendify(currentUser.id, userId);
+      if (result.isMatch) {
+        setMatchCelebration({ name: result.matchedUserName });
+      } else {
+        toast("friendify sent!", { duration: 1500 });
+      }
+    } catch (err) {
+      console.error("Error friendifying:", err);
+      toast.error("failed to friendify");
+    }
+  };
+
+  const handleBye = async (userId: string) => {
+    if (!currentUser) return;
+    try {
+      // Animate slide out to the left
+      setSlidingOut({ id: userId, direction: "left" });
+      await new Promise((resolve) => setTimeout(resolve, 300));
+
+      setSlidingOut(null);
+      setInteractedIds(prev => new Set([...prev, userId]));
+      setUsers(prev => prev.filter(u => u.id !== userId));
+
+      await api.reject(currentUser.id, userId);
+      toast("bye! maybe next time", { duration: 1500 });
+    } catch (err) {
+      console.error("Error rejecting:", err);
+    }
+  };
+
+  const handleViewWhoLikedYou = async () => {
+    if (!premiumStatus.isPremium) {
+      toast("upgrade to friendli+ to see who friendified you!");
+      navigate("/settings");
+      return;
+    }
+    try {
+      const result = await api.getReceivedFriendifies(currentUser.id);
+      setWhoLikedYou(result.users || []);
+      setShowWhoLikedYou(true);
+    } catch (err) {
+      console.error("Error fetching who liked you:", err);
+      toast.error("failed to load");
+    }
+  };
+
+  const filteredUsers = getFilteredUsers();
+  const hasActiveFilters = filters.ageMin || filters.ageMax || filters.city || filters.hobbies.length > 0 || (filters.personality && filters.personality !== "no preference");
+
+  const FILTER_HOBBIES = [
+    "hiking", "reading", "cooking", "gaming", "yoga", "photography",
+    "traveling", "music", "art", "sports", "dancing", "writing",
+    "movies", "coffee", "fitness", "volunteering"
+  ];
+
   return (
     <div className="flex flex-col h-full bg-[#FDFAEC]">
-      {/* Header */}
-      <div className="px-4 pt-4 pb-2">
+      <div className="px-4 pt-4 pb-2 flex items-center justify-between">
         <h1 className="text-2xl font-extrabold text-[#0D3B66] lowercase">discover</h1>
+        <div className="flex gap-2">
+          <button
+            onClick={handleRefresh}
+            disabled={refreshing}
+            className="p-2 rounded-xl transition-colors bg-[#EE964B]/10 text-[#EE964B] hover:bg-[#EE964B]/20 disabled:opacity-50"
+          >
+            <RefreshCw size={20} className={refreshing ? "animate-spin" : ""} />
+          </button>
+          <button
+            onClick={handleViewWhoLikedYou}
+            className={`p-2 rounded-xl transition-colors ${premiumStatus.isPremium ? "bg-[#EE964B]/10 text-[#EE964B]" : "bg-[#0D3B66]/5 text-[#0D3B66]/30"}`}
+          >
+            <Eye size={20} />
+          </button>
+          <button
+            onClick={() => {
+              if (!premiumStatus.isPremium) {
+                toast("upgrade to friendli+ for advanced filters!");
+                navigate("/settings");
+                return;
+              }
+              setShowFilters(true);
+            }}
+            className={`p-2 rounded-xl transition-colors ${hasActiveFilters ? "bg-[#EE964B] text-white" : premiumStatus.isPremium ? "bg-[#EE964B]/10 text-[#EE964B]" : "bg-[#0D3B66]/5 text-[#0D3B66]/30"}`}
+          >
+            <SlidersHorizontal size={20} />
+          </button>
+        </div>
       </div>
 
-      {/* Scrollable profile cards */}
-      <div className="flex-1 overflow-y-auto px-4 pb-4 space-y-4">
-        {dailyProfiles.map((profile) => {
-          const isInteracted = rejectedProfiles.includes(profile.id) || friendifiedProfiles.includes(profile.id);
-          return (
-            <ProfileCard
-              key={profile.id}
-              profile={profile}
-              onBye={() => handleBye(profile.id)}
-              onFriendify={() => handleFriendify(profile.id, profile.name)}
-              isInteracted={isInteracted}
-            />
-          );
-        })}
+      {/* Pull-to-refresh indicator */}
+      {pullDistance > 0 && (
+        <div
+          className="flex items-center justify-center overflow-hidden transition-all"
+          style={{ height: pullDistance }}
+        >
+          <RefreshCw
+            size={20}
+            className={`text-[#EE964B] transition-transform ${pullDistance >= PULL_THRESHOLD ? "animate-spin" : ""}`}
+            style={{ transform: `rotate(${pullDistance * 3}deg)` }}
+          />
+          <span className="ml-2 text-xs text-[#0D3B66]/50 lowercase font-medium">
+            {pullDistance >= PULL_THRESHOLD ? "release to refresh" : "pull to refresh"}
+          </span>
+        </div>
+      )}
 
-        {/* Daily limit footer — only shown for free users */}
-        {!isPremium && dailyProfiles.length > 0 && (
-          <div className="bg-white rounded-2xl shadow-lg p-6 text-center">
-            <Crown className="mx-auto mb-3 text-[#F4D35E]" size={36} />
+      {loading && (
+        <div className="flex-1 flex items-center justify-center">
+          <Loader2 className="animate-spin text-[#EE964B]" size={32} />
+        </div>
+      )}
+
+      {!loading && filteredUsers.length === 0 && (
+        <div className="flex-1 flex items-center justify-center px-4">
+          <div className="bg-white rounded-2xl shadow-lg p-8 text-center w-full">
+            <div className="relative mx-auto mb-4 w-24 h-24 flex items-center justify-center">
+              <Users className="absolute text-[#EE964B]/20" size={64} />
+              <Search className="absolute -top-1 -right-1 text-[#0D3B66]/15" size={28} />
+              <MapPin className="absolute -bottom-1 -left-1 text-[#E8556D]/20" size={24} />
+              <Coffee className="absolute top-0 left-0 text-[#F4D35E]/25" size={20} />
+              <Heart className="absolute -bottom-2 right-0 text-[#EE964B]/20" size={22} />
+            </div>
             <h3 className="text-lg font-extrabold text-[#0D3B66] lowercase mb-1">
-              you've reached your daily limit
+              {users.length === 0 ? "no one here yet" : "no matches for your filters"}
             </h3>
             <p className="text-sm text-[#0D3B66]/60 lowercase font-medium mb-4">
-              come back tomorrow for 10 new recommendations, or upgrade to friendli+ for unlimited discovery!
+              {users.length === 0 ? "invite your classmates to join friendli!" : "try adjusting your filters to see more people"}
             </p>
-            <Button
-              onClick={() => navigate("/settings")}
-              className="w-full bg-gradient-to-r from-[#EE964B] to-[#F95738] hover:opacity-90 text-white font-black lowercase py-3"
-            >
-              <Crown className="mr-2" size={16} />
-              upgrade to friendli+
-            </Button>
+            <div className="flex gap-2 justify-center">
+              {hasActiveFilters && (
+                <Button
+                  onClick={() => setFilters({ ageMin: "", ageMax: "", city: "", hobbies: [], personality: "" })}
+                  className="bg-[#EE964B] hover:bg-[#EE964B]/90 text-white lowercase font-bold"
+                >
+                  clear filters
+                </Button>
+              )}
+              <Button
+                onClick={handleRefresh}
+                variant="outline"
+                className="lowercase border-[#EE964B]/30 text-[#EE964B] font-bold"
+              >
+                <RefreshCw size={16} className="mr-1.5" /> refresh
+              </Button>
+            </div>
           </div>
+        </div>
+      )}
+
+      {!loading && filteredUsers.length > 0 && (
+        <div
+          ref={scrollContainerRef}
+          className="flex-1 overflow-y-auto px-4 pb-4 space-y-4"
+          onTouchStart={handlePullTouchStart}
+          onTouchMove={handlePullTouchMove}
+          onTouchEnd={handlePullTouchEnd}
+        >
+          <AnimatePresence mode="popLayout">
+            {filteredUsers.map((user) => (
+              <motion.div
+                key={user.id}
+                layout
+                initial={{ opacity: 1, x: 0 }}
+                animate={
+                  slidingOut?.id === user.id
+                    ? {
+                        x: slidingOut.direction === "left" ? -400 : 400,
+                        opacity: 0,
+                        transition: { duration: 0.3, ease: "easeIn" },
+                      }
+                    : { opacity: 1, x: 0 }
+                }
+                exit={{ opacity: 0, height: 0, marginBottom: 0, transition: { duration: 0.2 } }}
+              >
+                <ProfileCard
+                  user={user}
+                  onBye={() => handleBye(user.id)}
+                  onFriendify={() => handleFriendify(user.id)}
+                  isInteracted={interactedIds.has(user.id)}
+                  commonHobbiesCount={getCommonHobbiesCount(user.hobbies)}
+                />
+              </motion.div>
+            ))}
+          </AnimatePresence>
+
+          {!premiumStatus.isPremium && users.length > DAILY_REC_LIMIT && (
+            <div className="bg-white rounded-2xl shadow-lg p-6 text-center">
+              <Crown className="mx-auto mb-3 text-[#F4D35E]" size={36} />
+              <h3 className="text-lg font-extrabold text-[#0D3B66] lowercase mb-1">want to see more?</h3>
+              <p className="text-sm text-[#0D3B66]/60 lowercase font-medium mb-4">
+                free users see up to {DAILY_REC_LIMIT} profiles. upgrade to friendli+ for unlimited discovery, advanced filters, and more!
+              </p>
+              <Button
+                onClick={() => navigate("/settings")}
+                className="w-full bg-gradient-to-r from-[#EE964B] to-[#F95738] hover:opacity-90 text-white font-black lowercase py-3"
+              >
+                <Crown className="mr-2" size={16} />
+                start 48-hour free trial
+              </Button>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Match Celebration Overlay */}
+      <AnimatePresence>
+        {matchCelebration && (
+          <MatchCelebration
+            matchName={matchCelebration.name}
+            onDismiss={() => setMatchCelebration(null)}
+          />
         )}
-      </div>
+      </AnimatePresence>
+
+      {/* Filter Dialog */}
+      <Dialog open={showFilters} onOpenChange={setShowFilters}>
+        <DialogContent className="bg-white max-w-[400px] max-h-[80vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="text-[#0D3B66] lowercase font-black flex items-center gap-2">
+              <Filter size={20} className="text-[#EE964B]" /> advanced filters
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 py-2">
+            <div className="space-y-1.5">
+              <Label className="lowercase text-[#0D3B66] font-semibold text-sm">age range</Label>
+              <div className="flex gap-2 items-center">
+                <Input type="number" placeholder="min" value={filters.ageMin} onChange={(e) => setFilters({ ...filters, ageMin: e.target.value })} className="bg-[#FDFAEC] border-[#EE964B]/30 text-sm" />
+                <span className="text-[#0D3B66]/40 font-bold">-</span>
+                <Input type="number" placeholder="max" value={filters.ageMax} onChange={(e) => setFilters({ ...filters, ageMax: e.target.value })} className="bg-[#FDFAEC] border-[#EE964B]/30 text-sm" />
+              </div>
+            </div>
+            <div className="space-y-1.5">
+              <Label className="lowercase text-[#0D3B66] font-semibold text-sm">city</Label>
+              <Input placeholder="filter by city" value={filters.city} onChange={(e) => setFilters({ ...filters, city: e.target.value })} className="lowercase bg-[#FDFAEC] border-[#EE964B]/30 text-sm" />
+            </div>
+            <div className="space-y-1.5">
+              <Label className="lowercase text-[#0D3B66] font-semibold text-sm">personality</Label>
+              <div className="grid grid-cols-2 gap-1.5">
+                {["introvert", "extrovert", "ambivert", "no preference"].map((type) => (
+                  <button key={type} onClick={() => setFilters({ ...filters, personality: filters.personality === type ? "" : type })}
+                    className={`px-2 py-2 rounded-lg lowercase text-xs transition-all font-semibold ${filters.personality === type ? "bg-[#EE964B] text-white" : "bg-[#FDFAEC] border border-[#0D3B66]/10 text-[#0D3B66]"}`}>
+                    {type}
+                  </button>
+                ))}
+              </div>
+            </div>
+            <div className="space-y-1.5">
+              <Label className="lowercase text-[#0D3B66] font-semibold text-sm">hobbies</Label>
+              <div className="flex flex-wrap gap-1.5">
+                {FILTER_HOBBIES.map((hobby) => (
+                  <button key={hobby}
+                    onClick={() => setFilters(prev => ({ ...prev, hobbies: prev.hobbies.includes(hobby) ? prev.hobbies.filter(h => h !== hobby) : [...prev.hobbies, hobby] }))}
+                    className={`px-3 py-1.5 rounded-full lowercase text-xs transition-all font-semibold ${filters.hobbies.includes(hobby) ? "bg-[#EE964B] text-white" : "bg-[#FDFAEC] border border-[#0D3B66]/10 text-[#0D3B66]"}`}>
+                    {hobby}
+                  </button>
+                ))}
+              </div>
+            </div>
+            <div className="flex gap-2 pt-2">
+              <Button onClick={() => { setFilters({ ageMin: "", ageMax: "", city: "", hobbies: [], personality: "" }); setShowFilters(false); }} variant="outline" className="flex-1 lowercase border-[#0D3B66]/20 text-[#0D3B66] font-bold">
+                clear all
+              </Button>
+              <Button onClick={() => setShowFilters(false)} className="flex-1 bg-[#EE964B] hover:bg-[#EE964B]/90 text-white lowercase font-bold">
+                apply filters
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Who Liked You Dialog */}
+      <Dialog open={showWhoLikedYou} onOpenChange={setShowWhoLikedYou}>
+        <DialogContent className="bg-white max-w-[400px] max-h-[80vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="text-[#0D3B66] lowercase font-black flex items-center gap-2">
+              <Sparkles size={20} className="text-[#EE964B]" /> who friendified you
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-3 py-2">
+            {whoLikedYou.length === 0 ? (
+              <p className="text-center text-[#0D3B66]/50 lowercase font-medium py-4">no one has friendified you yet. keep discovering!</p>
+            ) : (
+              whoLikedYou.map((user) => (
+                <div key={user.id} className="flex items-center gap-3 p-3 bg-[#FDFAEC] rounded-xl">
+                  {user.profilePhoto ? (
+                    <img src={user.profilePhoto} alt={user.name} className="w-12 h-12 rounded-full object-cover border-2 border-[#EE964B]" />
+                  ) : (
+                    <div className="w-12 h-12 rounded-full bg-[#EE964B]/20 flex items-center justify-center border-2 border-[#EE964B]">
+                      <span className="text-[#EE964B] font-bold">{user.name?.[0]?.toUpperCase()}</span>
+                    </div>
+                  )}
+                  <div className="flex-1 min-w-0">
+                    <p className="font-bold text-[#0D3B66] lowercase text-sm">{user.name}, {user.age}</p>
+                    <p className="text-xs text-[#0D3B66]/50 lowercase truncate">{user.city}</p>
+                  </div>
+                  <Button
+                    onClick={() => { handleFriendify(user.id); setWhoLikedYou(prev => prev.filter(u => u.id !== user.id)); }}
+                    size="sm" className="bg-[#EE964B] hover:bg-[#EE964B]/90 text-white lowercase font-bold text-xs">
+                    <Heart size={14} className="mr-1" /> friendify
+                  </Button>
+                </div>
+              ))
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
