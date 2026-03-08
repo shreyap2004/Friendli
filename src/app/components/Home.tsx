@@ -10,6 +10,7 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import * as api from "@/lib/api";
+import { getDistanceMiles } from "@/lib/geo";
 import {
   Dialog,
   DialogContent,
@@ -31,6 +32,8 @@ interface UserProfile {
   profilePhoto: string;
   hobbyPhotos: Record<string, string>;
   personality: string;
+  lat: number | null;
+  lng: number | null;
 }
 
 /* ─── Match Celebration Component ─── */
@@ -205,12 +208,14 @@ function PhotoCarousel({ photos }: { photos: { url: string; label: string }[] })
 }
 
 /* ─── Profile Card ─── */
-function ProfileCard({ user, onFriendify, onBye, isInteracted, commonHobbiesCount }: {
+function ProfileCard({ user, onFriendify, onBye, isInteracted, commonHobbiesCount, currentUserLat, currentUserLng }: {
   user: UserProfile;
   onFriendify: () => void;
   onBye: () => void;
   isInteracted: boolean;
   commonHobbiesCount: number;
+  currentUserLat?: number | null;
+  currentUserLng?: number | null;
 }) {
   const photos: { url: string; label: string }[] = [];
   if (user.profilePhoto) photos.push({ url: user.profilePhoto, label: "" });
@@ -233,6 +238,11 @@ function ProfileCard({ user, onFriendify, onBye, isInteracted, commonHobbiesCoun
         <div className="flex-1 min-w-0">
           <h3 className="text-base font-bold text-[#0D3B66] lowercase">{user.name}, {user.age}</h3>
           <p className="text-xs text-[#0D3B66]/50 lowercase font-medium">{user.city}{user.almaMater ? ` - ${user.almaMater}` : ""}</p>
+          {currentUserLat && currentUserLng && user.lat && user.lng && (
+            <p className="text-[10px] text-[#EE964B] lowercase font-semibold">
+              {Math.round(getDistanceMiles(currentUserLat, currentUserLng, user.lat, user.lng))} miles away
+            </p>
+          )}
         </div>
         {commonHobbiesCount > 0 && (
           <div className="flex items-center gap-1 px-2.5 py-1 rounded-full bg-[#4CAF50]/10 border border-[#4CAF50]/20 shrink-0">
@@ -287,6 +297,7 @@ interface Filters {
   city: string;
   hobbies: string[];
   personality: string;
+  radius: string;
 }
 
 export default function Home() {
@@ -298,7 +309,7 @@ export default function Home() {
   const [showFilters, setShowFilters] = useState(false);
   const [showWhoLikedYou, setShowWhoLikedYou] = useState(false);
   const [whoLikedYou, setWhoLikedYou] = useState<UserProfile[]>([]);
-  const [filters, setFilters] = useState<Filters>({ ageMin: "", ageMax: "", city: "", hobbies: [], personality: "" });
+  const [filters, setFilters] = useState<Filters>({ ageMin: "", ageMax: "", city: "", hobbies: [], personality: "", radius: "" });
   const currentUser = api.getCurrentUser();
   const [premiumStatus, setPremiumStatus] = useState<{ isPremium: boolean; daysRemaining: number }>({ isPremium: false, daysRemaining: 0 });
 
@@ -401,6 +412,15 @@ export default function Home() {
     if (filters.ageMin) filtered = filtered.filter(u => parseInt(u.age) >= parseInt(filters.ageMin));
     if (filters.ageMax) filtered = filtered.filter(u => parseInt(u.age) <= parseInt(filters.ageMax));
     if (filters.city) filtered = filtered.filter(u => u.city?.toLowerCase().includes(filters.city.toLowerCase()));
+    if (filters.radius && currentUser?.lat && currentUser?.lng) {
+      const maxMiles = parseInt(filters.radius);
+      if (!isNaN(maxMiles)) {
+        filtered = filtered.filter(u => {
+          if (!u.lat || !u.lng) return true; // include users without location
+          return getDistanceMiles(currentUser.lat, currentUser.lng, u.lat, u.lng) <= maxMiles;
+        });
+      }
+    }
     if (filters.hobbies.length > 0) {
       filtered = filtered.filter(u => u.hobbies && filters.hobbies.some(h => u.hobbies.includes(h)));
     }
@@ -563,7 +583,7 @@ export default function Home() {
             <div className="flex gap-2 justify-center">
               {hasActiveFilters && (
                 <Button
-                  onClick={() => setFilters({ ageMin: "", ageMax: "", city: "", hobbies: [], personality: "" })}
+                  onClick={() => setFilters({ ageMin: "", ageMax: "", city: "", hobbies: [], personality: "", radius: "" })}
                   className="bg-[#EE964B] hover:bg-[#EE964B]/90 text-white lowercase font-bold"
                 >
                   clear filters
@@ -691,7 +711,7 @@ export default function Home() {
               </div>
             </div>
             <div className="flex gap-2 pt-2">
-              <Button onClick={() => { setFilters({ ageMin: "", ageMax: "", city: "", hobbies: [], personality: "" }); setShowFilters(false); }} variant="outline" className="flex-1 lowercase border-[#0D3B66]/20 text-[#0D3B66] font-bold">
+              <Button onClick={() => { setFilters({ ageMin: "", ageMax: "", city: "", hobbies: [], personality: "", radius: "" }); setShowFilters(false); }} variant="outline" className="flex-1 lowercase border-[#0D3B66]/20 text-[#0D3B66] font-bold">
                 clear all
               </Button>
               <Button onClick={() => setShowFilters(false)} className="flex-1 bg-[#EE964B] hover:bg-[#EE964B]/90 text-white lowercase font-bold">

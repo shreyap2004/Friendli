@@ -6,6 +6,7 @@ import { Textarea } from "./ui/textarea";
 import { Pencil, Save, Plus, X, Camera, ImagePlus } from "lucide-react";
 import { toast } from "sonner";
 import * as api from "@/lib/api";
+import { geocodeZip } from "@/lib/geo";
 
 const HOBBIES = [
   "hiking", "reading", "cooking", "gaming", "yoga", "photography",
@@ -53,6 +54,7 @@ export default function Profile() {
     almaMater: "",
     gender: "",
     city: "",
+    zipCode: "",
     funFact: "",
     lookingFor: "",
     hobbies: [] as string[],
@@ -74,6 +76,7 @@ export default function Profile() {
       almaMater: user.almaMater || "",
       gender: user.gender || "",
       city: user.city || "",
+      zipCode: user.zipCode || "",
       funFact: user.funFact || "",
       lookingFor: user.lookingFor || "",
       hobbies: user.hobbies || [],
@@ -89,18 +92,30 @@ export default function Profile() {
       const user = api.getCurrentUser();
       if (!user) return;
 
-      const updateData = {
+      const updateData: Record<string, unknown> = {
         name: profile.name,
         age: profile.age,
         almaMater: profile.almaMater,
         gender: profile.gender,
         city: profile.city,
+        zipCode: profile.zipCode,
         funFact: profile.funFact,
         lookingFor: profile.lookingFor,
         hobbies: profile.hobbies,
         profilePhoto: profile.profilePhoto,
         hobbyPhotos: profile.hobbyPhotos,
       };
+
+      let lat = undefined;
+      let lng = undefined;
+      if (updateData.zipCode) {
+        const coords = await geocodeZip(updateData.zipCode as string);
+        if (coords) { lat = coords.lat; lng = coords.lng; }
+      }
+      if (lat !== undefined && lng !== undefined) {
+        updateData.lat = lat;
+        updateData.lng = lng;
+      }
 
       const result = await api.updateUser(user.id, updateData);
       api.setCurrentUser(result.user);
@@ -276,6 +291,14 @@ export default function Profile() {
                   <p className="text-[#0D3B66] lowercase py-1.5 font-medium text-sm">{profile.city || "not set"}</p>
                 )}
               </div>
+            </div>
+            <div className="space-y-1">
+              <Label className="lowercase text-[#0D3B66] font-semibold text-sm">zip code <span className="text-[#0D3B66]/40 font-normal">(optional)</span></Label>
+              {isEditing ? (
+                <Input value={profile.zipCode} onChange={(e) => setProfile({ ...profile, zipCode: e.target.value })} className="bg-[#FDFAEC] border-[#EE964B]/30 text-sm" placeholder="e.g., 90210" />
+              ) : (
+                <p className="text-[#0D3B66] py-1.5 font-medium text-sm">{profile.zipCode || "not set"}</p>
+              )}
             </div>
           </div>
 

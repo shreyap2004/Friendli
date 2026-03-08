@@ -7,6 +7,7 @@ import { Textarea } from "./ui/textarea";
 import { ChevronRight, ChevronLeft, Camera, X, ImagePlus } from "lucide-react";
 import { toast } from "sonner";
 import * as api from "@/lib/api";
+import { geocodeZip } from "@/lib/geo";
 
 const HOBBIES = [
   "hiking", "reading", "cooking", "gaming", "yoga", "photography",
@@ -54,6 +55,7 @@ export default function Onboarding() {
     almaMater: "",
     gender: "",
     city: "",
+    zipCode: "",
     funFact: "",
     lookingFor: "",
     hobbies: [] as string[],
@@ -99,11 +101,24 @@ export default function Onboarding() {
         return;
       }
 
+      let lat = null;
+      let lng = null;
+      if (formData.zipCode) {
+        const coords = await geocodeZip(formData.zipCode);
+        if (coords) {
+          lat = coords.lat;
+          lng = coords.lng;
+        }
+      }
+
       const profileData = {
         age: formData.age,
         almaMater: formData.almaMater,
         gender: formData.gender,
         city: formData.city,
+        zipCode: formData.zipCode,
+        lat,
+        lng,
         funFact: formData.funFact,
         lookingFor: formData.lookingFor,
         hobbies: formData.hobbies,
@@ -255,6 +270,18 @@ export default function Onboarding() {
                   value={formData.city}
                   onChange={(e) => setFormData({ ...formData, city: e.target.value })}
                   className="lowercase bg-[#FDFAEC] border-[#EE964B]/30"
+                />
+              </div>
+
+              <div className="space-y-1.5">
+                <Label htmlFor="zipCode" className="lowercase text-[#0D3B66] font-semibold">zip code <span className="text-[#0D3B66]/40 font-medium">(optional)</span></Label>
+                <Input
+                  id="zipCode"
+                  placeholder="98101"
+                  value={formData.zipCode}
+                  onChange={(e) => setFormData({ ...formData, zipCode: e.target.value })}
+                  className="bg-[#FDFAEC] border-[#EE964B]/30"
+                  maxLength={5}
                 />
               </div>
             </div>
@@ -514,7 +541,7 @@ export default function Onboarding() {
                         {api.getCurrentUser()?.name || "you"}{formData.age ? `, ${formData.age}` : ""}
                       </h4>
                       <p className="text-[10px] text-[#0D3B66]/50 lowercase font-medium">
-                        {formData.city}{formData.almaMater ? ` - ${formData.almaMater}` : ""}
+                        {formData.city}{formData.zipCode ? ` ${formData.zipCode}` : ""}{formData.almaMater ? ` - ${formData.almaMater}` : ""}
                       </p>
                     </div>
                   </div>
