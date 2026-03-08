@@ -499,7 +499,7 @@ export default function Home() {
   };
 
   const filteredUsers = getFilteredUsers();
-  const hasActiveFilters = filters.ageMin || filters.ageMax || filters.city || filters.hobbies.length > 0 || (filters.personality && filters.personality !== "no preference");
+  const hasActiveFilters = filters.ageMin || filters.ageMax || filters.city || filters.hobbies.length > 0 || (filters.personality && filters.personality !== "no preference") || filters.radius;
 
   const FILTER_HOBBIES = [
     "hiking", "reading", "cooking", "gaming", "yoga", "photography",
@@ -632,6 +632,8 @@ export default function Home() {
                   onFriendify={() => handleFriendify(user.id)}
                   isInteracted={interactedIds.has(user.id)}
                   commonHobbiesCount={getCommonHobbiesCount(user.hobbies)}
+                  currentUserLat={currentUser?.lat}
+                  currentUserLng={currentUser?.lng}
                 />
               </motion.div>
             ))}
@@ -686,6 +688,26 @@ export default function Home() {
             <div className="space-y-1.5">
               <Label className="lowercase text-[#0D3B66] font-semibold text-sm">city</Label>
               <Input placeholder="filter by city" value={filters.city} onChange={(e) => setFilters({ ...filters, city: e.target.value })} className="lowercase bg-[#FDFAEC] border-[#EE964B]/30 text-sm" />
+            </div>
+            <div className="space-y-1.5">
+              <Label className="lowercase text-[#0D3B66] font-semibold text-sm">distance radius</Label>
+              <div className="flex items-center gap-3">
+                <input
+                  type="range"
+                  min="5"
+                  max="100"
+                  step="5"
+                  value={filters.radius || "50"}
+                  onChange={(e) => setFilters({ ...filters, radius: e.target.value })}
+                  className="flex-1 accent-[#EE964B]"
+                />
+                <span className="text-sm font-bold text-[#0D3B66] w-16 text-right">
+                  {filters.radius ? `${filters.radius} mi` : "any"}
+                </span>
+              </div>
+              <p className="text-[9px] text-[#0D3B66]/40 lowercase font-medium">
+                {currentUser?.zipCode ? `based on your zip code (${currentUser.zipCode})` : "add a zip code in your profile to enable"}
+              </p>
             </div>
             <div className="space-y-1.5">
               <Label className="lowercase text-[#0D3B66] font-semibold text-sm">personality</Label>
