@@ -66,8 +66,8 @@ export default function Onboarding() {
 
   const handleNext = () => {
     if (step === 1) {
-      if (!formData.age || !formData.almaMater || !formData.gender || !formData.city) {
-        toast.error("please fill in all basic info");
+      if (!formData.age || !formData.gender || !formData.city) {
+        toast.error("please fill in age, gender, and city");
         return;
       }
     } else if (step === 2) {
@@ -226,7 +226,7 @@ export default function Onboarding() {
               </div>
 
               <div className="space-y-1.5">
-                <Label htmlFor="almaMater" className="lowercase text-[#0D3B66] font-semibold">alma mater</Label>
+                <Label htmlFor="almaMater" className="lowercase text-[#0D3B66] font-semibold">alma mater <span className="text-[#0D3B66]/40 font-medium">(optional)</span></Label>
                 <Input
                   id="almaMater"
                   placeholder="university name"
