@@ -11,17 +11,16 @@ export default function InstallBanner() {
   const [deferredPrompt, setDeferredPrompt] = useState<BeforeInstallPromptEvent | null>(null);
   const [showBanner, setShowBanner] = useState(false);
   const [dismissed, setDismissed] = useState(false);
-  const [showIOSInstructions, setShowIOSInstructions] = useState(false);
-
-  const isStandalone = typeof window !== "undefined" &&
-    (window.matchMedia("(display-mode: standalone)").matches || (navigator as unknown as { standalone?: boolean }).standalone);
 
   const isIOS = typeof navigator !== "undefined" && /iPad|iPhone|iPod/.test(navigator.userAgent);
   const isMobile = typeof navigator !== "undefined" && /Mobi|Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
 
   useEffect(() => {
     // Don't show if already installed as PWA
-    if (isStandalone) return;
+    const standalone = window.matchMedia("(display-mode: standalone)").matches ||
+      (navigator as unknown as { standalone?: boolean }).standalone;
+    if (standalone) return;
+
     // Don't show if user dismissed before this session
     if (sessionStorage.getItem("friendli_install_dismissed")) return;
 
@@ -33,22 +32,22 @@ export default function InstallBanner() {
     };
     window.addEventListener("beforeinstallprompt", handler);
 
-    // Show on any mobile browser (including Safari)
+    // Show on any mobile browser
     if (isMobile) {
       setShowBanner(true);
     }
 
-    // Also show on desktop Chrome (it supports PWA install)
-    // Give Chrome a moment to fire beforeinstallprompt
-    const timer = setTimeout(() => {
-      if (!isMobile) setShowBanner(true);
-    }, 2000);
+    // Desktop: give Chrome a moment to fire beforeinstallprompt
+    if (!isMobile) {
+      const timer = setTimeout(() => setShowBanner(true), 2000);
+      return () => {
+        window.removeEventListener("beforeinstallprompt", handler);
+        clearTimeout(timer);
+      };
+    }
 
-    return () => {
-      window.removeEventListener("beforeinstallprompt", handler);
-      clearTimeout(timer);
-    };
-  }, []);
+    return () => window.removeEventListener("beforeinstallprompt", handler);
+  }, [isMobile]);
 
   const handleInstall = async () => {
     if (deferredPrompt) {
@@ -58,19 +57,16 @@ export default function InstallBanner() {
         setShowBanner(false);
       }
       setDeferredPrompt(null);
-    } else if (isIOS) {
-      setShowIOSInstructions(true);
     }
   };
 
   const handleDismiss = () => {
     setDismissed(true);
     setShowBanner(false);
-    setShowIOSInstructions(false);
     sessionStorage.setItem("friendli_install_dismissed", "true");
   };
 
-  if (!showBanner || dismissed || isStandalone) return null;
+  if (!showBanner || dismissed) return null;
 
   return (
     <div className="mx-4 mb-3">
@@ -94,43 +90,54 @@ export default function InstallBanner() {
             </p>
           </div>
 
-          <Button
-            onClick={handleInstall}
-            size="sm"
-            className="bg-[#EE964B] hover:bg-[#EE964B]/90 text-white lowercase font-bold text-xs flex-shrink-0"
-          >
-            install
-          </Button>
+          {/* Chrome/Android: direct install button */}
+          {deferredPrompt && (
+            <Button
+              onClick={handleInstall}
+              size="sm"
+              className="bg-[#EE964B] hover:bg-[#EE964B]/90 text-white lowercase font-bold text-xs flex-shrink-0"
+            >
+              install
+            </Button>
+          )}
         </div>
 
-        {/* iOS instructions (shown after tapping install on Safari) */}
-        {showIOSInstructions && (
+        {/* iOS Safari: always show instructions since there's no auto-install API */}
+        {isIOS && !deferredPrompt && (
           <div className="mt-3 pt-3 border-t border-white/10 space-y-2">
-            <p className="text-white/80 text-xs lowercase font-semibold">how to install on iphone:</p>
             <div className="flex items-start gap-2">
               <div className="w-5 h-5 rounded-full bg-white/10 flex items-center justify-center flex-shrink-0 mt-0.5">
                 <span className="text-white text-[10px] font-bold">1</span>
               </div>
-              <p className="text-white/60 text-xs lowercase font-medium flex items-center gap-1">
-                tap the <Share size={12} className="text-white/80 inline" /> share button in safari's toolbar
+              <p className="text-white/70 text-xs lowercase font-medium flex items-center gap-1">
+                tap the <Share size={12} className="text-white/90 mx-0.5" /> share button in safari
               </p>
             </div>
             <div className="flex items-start gap-2">
               <div className="w-5 h-5 rounded-full bg-white/10 flex items-center justify-center flex-shrink-0 mt-0.5">
                 <span className="text-white text-[10px] font-bold">2</span>
               </div>
-              <p className="text-white/60 text-xs lowercase font-medium">
-                scroll down and tap "add to home screen"
+              <p className="text-white/70 text-xs lowercase font-medium">
+                tap "add to home screen"
               </p>
             </div>
             <div className="flex items-start gap-2">
               <div className="w-5 h-5 rounded-full bg-white/10 flex items-center justify-center flex-shrink-0 mt-0.5">
                 <span className="text-white text-[10px] font-bold">3</span>
               </div>
-              <p className="text-white/60 text-xs lowercase font-medium">
-                tap "add" - friendli will appear on your home screen
+              <p className="text-white/70 text-xs lowercase font-medium">
+                tap "add" and friendli appears on your home screen
               </p>
             </div>
+          </div>
+        )}
+
+        {/* Desktop without beforeinstallprompt: manual instructions */}
+        {!isMobile && !deferredPrompt && (
+          <div className="mt-2">
+            <p className="text-white/50 text-[10px] lowercase font-medium">
+              in chrome: click the install icon in the address bar
+            </p>
           </div>
         )}
       </div>

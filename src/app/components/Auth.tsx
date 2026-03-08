@@ -3,6 +3,7 @@ import { useNavigate } from "react-router";
 import { Button } from "./ui/button";
 import { Input } from "./ui/input";
 import { Label } from "./ui/label";
+import InstallBanner from "./InstallBanner";
 import { toast } from "sonner";
 import * as api from "@/lib/api";
 
@@ -134,6 +135,9 @@ export default function Auth() {
             </button>
           </div>
         </div>
+
+        {/* Install app banner */}
+        <InstallBanner />
       </div>
     </div>
   );
