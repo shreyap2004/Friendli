@@ -1,0 +1,24 @@
+{
+  "name": "Friendli",
+  "short_name": "Friendli",
+  "description": "Make meaningful connections, one friend at a time",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#FDFAEC",
+  "theme_color": "#EE964B",
+  "orientation": "portrait",
+  "icons": [
+    {
+      "src": "/icons/icon-192.svg",
+      "sizes": "192x192",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/icons/icon-512.svg",
+      "sizes": "512x512",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}

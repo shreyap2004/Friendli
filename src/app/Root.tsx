@@ -1,6 +1,7 @@
 import { Outlet, useLocation, useNavigate } from "react-router";
 import { Home, MessageCircle, User, Settings } from "lucide-react";
 import { useEffect, useState } from "react";
+import InstallBanner from "./components/InstallBanner";
 
 const PROTECTED_ROUTES = ["/home", "/messages", "/profile", "/settings"];
 
@@ -67,6 +68,8 @@ export default function Root() {
       {/* Phone frame */}
       <div className="relative w-full max-w-[430px] min-h-screen bg-background flex flex-col shadow-2xl">
         <Outlet />
+
+        {showNavigation && <InstallBanner />}
 
         {showNavigation && (
           <nav className="sticky bottom-0 left-0 right-0 bg-white border-t border-[#EE964B]/20 px-4 py-2 flex justify-around items-center z-50">
