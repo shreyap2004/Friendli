@@ -77,17 +77,6 @@ export default function Root() {
     return () => clearInterval(interval);
   }, [location.pathname]);
 
-  const showNavigation = isAuthenticated &&
-    location.pathname !== '/' &&
-    location.pathname !== '/onboarding';
-
-  const isActive = (path: string) => location.pathname === path;
-
-  // Show splash screen while checking auth (prevents flash of login page)
-  if (!authChecked) {
-    return <SplashScreen />;
-  }
-
   // Update html background color to match current page on mobile
   // This prevents Safari's overscroll bounce from showing the wrong color
   useEffect(() => {
@@ -101,6 +90,17 @@ export default function Root() {
       document.documentElement.style.background = "#0D3B66";
     }
   }, [location.pathname, isAuthenticated]);
+
+  const showNavigation = isAuthenticated &&
+    location.pathname !== '/' &&
+    location.pathname !== '/onboarding';
+
+  const isActive = (path: string) => location.pathname === path;
+
+  // Show splash screen while checking auth (prevents flash of login page)
+  if (!authChecked) {
+    return <SplashScreen />;
+  }
 
   return (
     <div className="flex justify-center bg-[#0D3B66]" style={{ minHeight: "100dvh" }}>
