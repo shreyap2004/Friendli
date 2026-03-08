@@ -78,8 +78,18 @@ This document is for the development team. It covers implementation details, des
 
 **Advanced Filters**
 - Filter by: age range (min/max), city (text search), personality type (introvert/extrovert/ambivert), hobbies (multi-select from 16 options)
+- Distance radius filter: slider from 5-100 miles, uses Haversine formula on lat/lng coordinates
 - Filters are applied client-side on the already-fetched profile list
 - Filter button is grayed out for free users and redirects to settings with a toast
+
+**Distance/Radius Filtering**
+- Users can optionally enter a zip code during onboarding or in profile settings
+- Zip codes are geocoded to lat/lng using the free zippopotam.us API (no API key needed, US zip codes only)
+- Lat/lng coordinates are stored in the user's profile record on the server
+- Premium filter dialog includes a radius slider (5-100 miles, step 5)
+- Profile cards show "X miles away" when both the viewer and profile have coordinates
+- Users without zip codes are never excluded from results (they just don't show distance)
+- Distance calculation uses the Haversine formula (`src/lib/geo.ts`)
 
 **See Who Friendified You**
 - Fetches the `friendify_received:{userId}` list from the server
@@ -115,6 +125,14 @@ This document is for the development team. It covers implementation details, des
 - Supabase Edge Functions (Deno) don't natively support WebSocket connections
 - 5-second polling for messages and 3-second polling for typing indicators provides a good-enough real-time experience
 - Typing indicators have a 5-second server-side expiry to prevent stale "typing..." bubbles
+
+**Why zippopotam.us for geocoding?**
+- Free API, no registration or API key required
+- Supports all US zip codes with lat/lng coordinates
+- Simple REST endpoint: `https://api.zippopotam.us/us/{zip}`
+- Called once at profile save time, coordinates stored in user record
+- If the API is down, zip code is saved without coordinates (graceful degradation)
+- For production, Google Maps Geocoding API or Mapbox would be more reliable
 
 **Why no real payment processing?**
 - This is a class project demo, not a commercial product

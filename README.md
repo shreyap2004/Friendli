@@ -50,9 +50,11 @@ Everything in Free, plus:
 
 - Unlimited profile discovery (no daily cap)
 - Advanced search filters (age range, city, personality type, hobbies)
+- Distance radius filter (5-100 miles, powered by zip code geocoding)
 - See who friendified you (view pending likes before deciding)
 - Priority matching (profiles sorted by shared hobby count)
 - Hobby match badges showing how many interests you share
+- "X miles away" distance display on profile cards
 
 ### Chat Features (all users)
 
