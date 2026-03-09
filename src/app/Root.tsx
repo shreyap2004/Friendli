@@ -63,7 +63,9 @@ export default function Root() {
   // Set html background to match current page
   useEffect(() => {
     const isLoginOrSplash = location.pathname === '/' && !isAuthenticated;
-    document.documentElement.style.background = isLoginOrSplash ? "#D4803F" : "#FDFAEC";
+    document.documentElement.style.background = isLoginOrSplash
+      ? "linear-gradient(135deg, #D4803F, #E04A2B)"
+      : "#FDFAEC";
   }, [location.pathname, isAuthenticated]);
 
   const showNavigation = isAuthenticated &&
