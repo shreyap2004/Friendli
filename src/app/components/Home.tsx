@@ -155,14 +155,20 @@ function PhotoCarousel({ photos }: { photos: { url: string; label: string }[] })
   if (photos.length === 1) {
     return (
       <div className="relative">
-        <div className="aspect-square relative overflow-hidden">
-          <img src={photos[0].url} alt={photos[0].label} className="w-full h-full object-cover" draggable={false} />
-          {photos[0].label && (
-            <div className="absolute bottom-3 right-3 bg-[#EE964B] text-white px-4 py-1.5 rounded-full shadow-lg lowercase font-bold text-sm">
-              {photos[0].label}
-            </div>
-          )}
-        </div>
+        {photos[0].url ? (
+          <div className="aspect-square relative overflow-hidden">
+            <img src={photos[0].url} alt={photos[0].label} className="w-full h-full object-cover" draggable={false} />
+            {photos[0].label && (
+              <div className="absolute bottom-3 left-1/2 -translate-x-1/2 bg-[#EE964B] text-white px-4 py-1.5 rounded-full shadow-lg lowercase font-bold text-sm">
+                {photos[0].label}
+              </div>
+            )}
+          </div>
+        ) : (
+          <div className="aspect-square bg-gradient-to-br from-[#EE964B]/10 to-[#F95738]/10 flex flex-col items-center justify-center">
+            <span className="text-3xl font-black text-[#EE964B]/40 lowercase">{photos[0].label}</span>
+          </div>
+        )}
       </div>
     );
   }
@@ -183,9 +189,15 @@ function PhotoCarousel({ photos }: { photos: { url: string; label: string }[] })
         onTouchEnd={handleTouchEnd}
         onClick={handleClick}
       >
-        <img src={photos[current].url} alt={photos[current].label} className="w-full h-full object-cover transition-opacity duration-200" draggable={false} />
-        {photos[current].label && (
-          <div className="absolute bottom-3 right-3 bg-[#EE964B] text-white px-4 py-1.5 rounded-full shadow-lg lowercase font-bold text-sm">
+        {photos[current].url ? (
+          <img src={photos[current].url} alt={photos[current].label} className="w-full h-full object-cover transition-opacity duration-200" draggable={false} />
+        ) : (
+          <div className="w-full h-full bg-gradient-to-br from-[#EE964B]/10 to-[#F95738]/10 flex items-center justify-center">
+            <span className="text-3xl font-black text-[#EE964B]/40 lowercase">{photos[current].label}</span>
+          </div>
+        )}
+        {photos[current].label && photos[current].url && (
+          <div className="absolute bottom-3 left-1/2 -translate-x-1/2 bg-[#EE964B] text-white px-4 py-1.5 rounded-full shadow-lg lowercase font-bold text-sm">
             {photos[current].label}
           </div>
         )}
@@ -219,9 +231,19 @@ function ProfileCard({ user, onFriendify, onBye, isInteracted, commonHobbiesCoun
 }) {
   const photos: { url: string; label: string }[] = [];
   if (user.profilePhoto) photos.push({ url: user.profilePhoto, label: "" });
+  // Add hobby photos
   if (user.hobbyPhotos) {
     for (const [hobby, url] of Object.entries(user.hobbyPhotos)) {
       if (url) photos.push({ url, label: hobby });
+    }
+  }
+  // Add hobbies without photos as placeholder slides
+  if (user.hobbies) {
+    const photodHobbies = new Set(Object.keys(user.hobbyPhotos || {}));
+    for (const hobby of user.hobbies) {
+      if (!photodHobbies.has(hobby)) {
+        photos.push({ url: "", label: hobby });
+      }
     }
   }
 

@@ -205,7 +205,7 @@ export default function Onboarding() {
   const totalSteps = 5;
 
   return (
-    <div className="flex flex-col min-h-screen px-5 py-6 bg-background pb-20">
+    <div className="flex flex-col flex-1 px-5 py-6 bg-background pb-20">
       <div className="w-full space-y-5">
         {/* Header */}
         <div className="space-y-3">

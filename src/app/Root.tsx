@@ -1,23 +1,12 @@
 import { Outlet, useLocation, useNavigate } from "react-router";
 import { Home, MessageCircle, User, Settings } from "lucide-react";
 import { useEffect, useState } from "react";
-import InstallBanner from "./components/InstallBanner";
 
 const PROTECTED_ROUTES = ["/home", "/messages", "/profile", "/settings"];
 
 function SplashScreen() {
-  // Set html background to match splash on mobile
-  useEffect(() => {
-    const isMobile = window.innerWidth < 768;
-    if (isMobile) {
-      document.documentElement.style.background = "linear-gradient(135deg, #D4803F, #E04A2B)";
-    }
-  }, []);
-
   return (
-    <div
-      className="flex flex-col items-center justify-center w-full bg-gradient-to-br from-[#D4803F] to-[#E04A2B] flex-1"
-    >
+    <div className="flex flex-col items-center justify-center flex-1 bg-gradient-to-br from-[#D4803F] to-[#E04A2B]">
       <h1 className="text-5xl font-black text-white lowercase drop-shadow-md mb-2">friendli</h1>
       <p className="text-white/90 lowercase font-semibold drop-shadow-sm">make meaningful connections</p>
     </div>
@@ -31,7 +20,6 @@ export default function Root() {
   const [unreadMatches, setUnreadMatches] = useState(0);
   const [authChecked, setAuthChecked] = useState(false);
 
-  // Check auth and redirect if needed
   useEffect(() => {
     const auth = localStorage.getItem('friendli_user');
     const authed = !!auth;
@@ -41,16 +29,12 @@ export default function Root() {
     if (!authed && PROTECTED_ROUTES.includes(location.pathname)) {
       navigate('/', { replace: true });
     }
-
     if (authed && location.pathname === '/') {
       const onboarded = localStorage.getItem('friendli_onboarded');
-      if (onboarded) {
-        navigate('/home', { replace: true });
-      }
+      if (onboarded) navigate('/home', { replace: true });
     }
   }, [location.pathname, navigate]);
 
-  // Check for new matches by polling server
   useEffect(() => {
     const checkUnread = async () => {
       const user = localStorage.getItem('friendli_user');
@@ -76,18 +60,10 @@ export default function Root() {
     return () => clearInterval(interval);
   }, [location.pathname]);
 
-  // Update html background color to match current page on mobile
-  // This prevents Safari's overscroll bounce from showing the wrong color
+  // Set html background to match current page
   useEffect(() => {
     const isLoginOrSplash = location.pathname === '/' && !isAuthenticated;
-    const isMobile = window.innerWidth < 768;
-    if (isMobile) {
-      document.documentElement.style.background = isLoginOrSplash
-        ? "linear-gradient(135deg, #D4803F, #E04A2B)"
-        : "#FDFAEC";
-    } else {
-      document.documentElement.style.background = "#0D3B66";
-    }
+    document.documentElement.style.background = isLoginOrSplash ? "#D4803F" : "#FDFAEC";
   }, [location.pathname, isAuthenticated]);
 
   const showNavigation = isAuthenticated &&
@@ -96,73 +72,60 @@ export default function Root() {
 
   const isActive = (path: string) => location.pathname === path;
 
-  // Show splash screen while checking auth (prevents flash of login page)
-  if (!authChecked) {
-    return <SplashScreen />;
-  }
+  if (!authChecked) return <SplashScreen />;
 
   return (
-    <div className="flex justify-center bg-[#0D3B66] flex-1">
-      <div className="relative w-full md:max-w-[430px] bg-background flex flex-col md:shadow-2xl flex-1 overflow-hidden">
+    <div className="flex flex-col flex-1 bg-background overflow-hidden">
+      {/* Scrollable content area */}
+      <div className="flex-1 flex flex-col overflow-y-auto overflow-x-hidden">
         <Outlet />
-
-        {showNavigation && (
-          <nav className="sticky bottom-0 left-0 right-0 bg-white border-t border-[#EE964B]/20 px-4 py-2 flex justify-around items-center z-50">
-            <button
-              onClick={() => navigate('/home')}
-              className={`flex flex-col items-center gap-0.5 px-3 py-1.5 rounded-xl transition-all ${
-                isActive('/home')
-                  ? 'text-[#EE964B] bg-[#EE964B]/10'
-                  : 'text-[#0D3B66]/40'
-              }`}
-            >
-              <Home size={22} strokeWidth={isActive('/home') ? 2.5 : 2} />
-              <span className="text-[10px] lowercase font-semibold">discover</span>
-            </button>
-
-            <button
-              onClick={() => navigate('/messages')}
-              className={`flex flex-col items-center gap-0.5 px-3 py-1.5 rounded-xl transition-all relative ${
-                isActive('/messages')
-                  ? 'text-[#EE964B] bg-[#EE964B]/10'
-                  : 'text-[#0D3B66]/40'
-              }`}
-            >
-              <MessageCircle size={22} strokeWidth={isActive('/messages') ? 2.5 : 2} />
-              {unreadMatches > 0 && (
-                <div className="absolute -top-0.5 right-1 w-4 h-4 bg-[#F95738] rounded-full flex items-center justify-center">
-                  <span className="text-white text-[9px] font-bold">{unreadMatches}</span>
-                </div>
-              )}
-              <span className="text-[10px] lowercase font-semibold">messages</span>
-            </button>
-
-            <button
-              onClick={() => navigate('/profile')}
-              className={`flex flex-col items-center gap-0.5 px-3 py-1.5 rounded-xl transition-all ${
-                isActive('/profile')
-                  ? 'text-[#EE964B] bg-[#EE964B]/10'
-                  : 'text-[#0D3B66]/40'
-              }`}
-            >
-              <User size={22} strokeWidth={isActive('/profile') ? 2.5 : 2} />
-              <span className="text-[10px] lowercase font-semibold">profile</span>
-            </button>
-
-            <button
-              onClick={() => navigate('/settings')}
-              className={`flex flex-col items-center gap-0.5 px-3 py-1.5 rounded-xl transition-all ${
-                isActive('/settings')
-                  ? 'text-[#EE964B] bg-[#EE964B]/10'
-                  : 'text-[#0D3B66]/40'
-              }`}
-            >
-              <Settings size={22} strokeWidth={isActive('/settings') ? 2.5 : 2} />
-              <span className="text-[10px] lowercase font-semibold">settings</span>
-            </button>
-          </nav>
-        )}
       </div>
+
+      {showNavigation && (
+        <nav className="flex-shrink-0 bg-white border-t border-[#EE964B]/20 px-4 py-2 flex justify-around items-center z-50">
+          <button
+            onClick={() => navigate('/home')}
+            className={`flex flex-col items-center gap-0.5 px-3 py-1.5 rounded-xl transition-all ${
+              isActive('/home') ? 'text-[#EE964B] bg-[#EE964B]/10' : 'text-[#0D3B66]/40'
+            }`}
+          >
+            <Home size={22} strokeWidth={isActive('/home') ? 2.5 : 2} />
+            <span className="text-[10px] lowercase font-semibold">discover</span>
+          </button>
+          <button
+            onClick={() => navigate('/messages')}
+            className={`flex flex-col items-center gap-0.5 px-3 py-1.5 rounded-xl transition-all relative ${
+              isActive('/messages') ? 'text-[#EE964B] bg-[#EE964B]/10' : 'text-[#0D3B66]/40'
+            }`}
+          >
+            <MessageCircle size={22} strokeWidth={isActive('/messages') ? 2.5 : 2} />
+            {unreadMatches > 0 && (
+              <div className="absolute -top-0.5 right-1 w-4 h-4 bg-[#F95738] rounded-full flex items-center justify-center">
+                <span className="text-white text-[9px] font-bold">{unreadMatches}</span>
+              </div>
+            )}
+            <span className="text-[10px] lowercase font-semibold">messages</span>
+          </button>
+          <button
+            onClick={() => navigate('/profile')}
+            className={`flex flex-col items-center gap-0.5 px-3 py-1.5 rounded-xl transition-all ${
+              isActive('/profile') ? 'text-[#EE964B] bg-[#EE964B]/10' : 'text-[#0D3B66]/40'
+            }`}
+          >
+            <User size={22} strokeWidth={isActive('/profile') ? 2.5 : 2} />
+            <span className="text-[10px] lowercase font-semibold">profile</span>
+          </button>
+          <button
+            onClick={() => navigate('/settings')}
+            className={`flex flex-col items-center gap-0.5 px-3 py-1.5 rounded-xl transition-all ${
+              isActive('/settings') ? 'text-[#EE964B] bg-[#EE964B]/10' : 'text-[#0D3B66]/40'
+            }`}
+          >
+            <Settings size={22} strokeWidth={isActive('/settings') ? 2.5 : 2} />
+            <span className="text-[10px] lowercase font-semibold">settings</span>
+          </button>
+        </nav>
+      )}
     </div>
   );
 }
