@@ -257,13 +257,9 @@ export default function Messages() {
     }
   };
 
-  const handleViewProfile = async () => {
-    if (!selectedChat) return;
-    const deleted = isOtherUserDeleted(selectedChat);
-    if (deleted) return;
-    const otherId = getOtherUserId(selectedChat);
+  const handleViewProfile = async (userId: string) => {
     try {
-      const result = await api.getUser(otherId);
+      const result = await api.getUser(userId);
       setProfileData(result.user);
       setShowProfile(true);
     } catch { /* ignore */ }
@@ -285,11 +281,11 @@ export default function Messages() {
 
     return (
       <div className="flex flex-col flex-1">
-        <div className="bg-white border-b border-[#EE964B]/20 px-4 py-3 flex items-center gap-3">
+        <div className="flex-shrink-0 bg-white border-b border-[#EE964B]/20 px-4 py-3 flex items-center gap-3">
           <button onClick={() => { setSelectedChat(null); loadChats(); }} className="text-[#0D3B66] hover:text-[#EE964B]">
             <ArrowLeft size={22} strokeWidth={2.5} />
           </button>
-          <button onClick={handleViewProfile} className="flex items-center gap-3 flex-1" disabled={deleted}>
+          <button onClick={() => !deleted && handleViewProfile(getOtherUserId(selectedChat))} className="flex items-center gap-3 flex-1" disabled={deleted}>
             {deleted ? (
               <div className="w-9 h-9 rounded-full bg-gray-300 flex items-center justify-center border-2 border-gray-400">
                 <span className="text-gray-500 font-bold text-sm">?</span>
@@ -307,7 +303,7 @@ export default function Messages() {
           </button>
         </div>
 
-        <div className="flex-1 overflow-y-auto px-4 py-4 space-y-3 bg-[#FDFAEC]">
+        <div className="flex-1 overflow-y-auto min-h-0 px-4 py-4 space-y-3 bg-[#FDFAEC]">
           {deleted && (
             <div className="flex justify-center py-2">
               <div className="bg-gray-100 border border-gray-200 rounded-full px-4 py-1.5">
@@ -378,7 +374,7 @@ export default function Messages() {
           <div ref={messagesEndRef} />
         </div>
 
-        <div className="bg-white border-t border-[#EE964B]/20 px-4 py-3">
+        <div className="flex-shrink-0 bg-white border-t border-[#EE964B]/20 px-4 py-3">
           {deleted ? (
             <div className="flex items-center justify-center py-1">
               <p className="text-xs text-gray-400 lowercase font-medium">you can no longer send messages to this conversation</p>
@@ -490,7 +486,13 @@ export default function Messages() {
                   onClick={() => setSelectedChat(chat)}
                   className="w-full bg-white rounded-xl shadow-md p-3.5 flex items-center gap-3 hover:shadow-lg transition-shadow active:scale-[0.98]"
                 >
-                  <div className="relative flex-shrink-0">
+                  <div
+                    className="relative flex-shrink-0"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      if (!deleted) handleViewProfile(getOtherUserId(chat));
+                    }}
+                  >
                     {deleted ? (
                       <div className="w-12 h-12 rounded-full bg-gray-300 flex items-center justify-center border-2 border-gray-400">
                         <span className="text-gray-500 font-bold">?</span>
