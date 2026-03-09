@@ -6,7 +6,7 @@ const PROTECTED_ROUTES = ["/home", "/messages", "/profile", "/settings"];
 
 function SplashScreen() {
   return (
-    <div className="fixed inset-0 flex flex-col items-center justify-center bg-gradient-to-br from-[#D4803F] to-[#E04A2B]" style={{ paddingTop: "env(safe-area-inset-top)" }}>
+    <div className="fixed inset-0 flex flex-col items-center justify-center bg-gradient-to-br from-[#D4803F] to-[#E04A2B]" style={{ padding: "env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left)" }}>
       <h1 className="text-5xl font-black text-white lowercase drop-shadow-md mb-2">friendli</h1>
       <p className="text-white/90 lowercase font-semibold drop-shadow-sm">make meaningful connections</p>
     </div>
@@ -62,6 +62,14 @@ export default function Root() {
 
   const isLoginPage = location.pathname === '/' && !isAuthenticated;
 
+  // Set html/body background to match page - this fills the area
+  // behind the status bar since html has min-height: calc(100% + safe-area)
+  useEffect(() => {
+    const bg = isLoginPage ? "#D4803F" : "#FDFAEC";
+    document.documentElement.style.backgroundColor = bg;
+    document.body.style.backgroundColor = bg;
+  }, [isLoginPage]);
+
   const showNavigation = isAuthenticated &&
     location.pathname !== '/' &&
     location.pathname !== '/onboarding';
@@ -77,7 +85,7 @@ export default function Root() {
     : "bg-[#FDFAEC]";
 
   return (
-    <div className={`fixed inset-0 flex flex-col ${bgClass}`} style={{ paddingTop: "env(safe-area-inset-top)", paddingBottom: "env(safe-area-inset-bottom)" }}>
+    <div className={`fixed inset-0 flex flex-col ${bgClass}`} style={{ padding: "env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left)" }}>
       {/* Scrollable content area */}
       <div className="flex-1 flex flex-col overflow-y-auto overflow-x-hidden">
         <Outlet />
