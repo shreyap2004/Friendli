@@ -510,7 +510,7 @@ export default function Home() {
 
   return (
     <div className="flex flex-col min-h-full bg-[#FDFAEC]">
-      <div className="px-4 pt-4 pb-2 flex items-center justify-between">
+      <div className="px-4 pt-4 pb-2 flex items-center justify-between border-b border-[#EE964B]/15">
         <h1 className="text-2xl font-extrabold text-[#0D3B66] lowercase">discover</h1>
         <div className="flex gap-2">
           <button
