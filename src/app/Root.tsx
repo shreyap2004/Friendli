@@ -60,12 +60,13 @@ export default function Root() {
     return () => clearInterval(interval);
   }, [location.pathname]);
 
-  // Set html background to match current page
+  // Set background on html and body to match current page
+  // This ensures no gaps show wrong colors on any device
   useEffect(() => {
     const isLoginOrSplash = location.pathname === '/' && !isAuthenticated;
-    document.documentElement.style.background = isLoginOrSplash
-      ? "linear-gradient(135deg, #D4803F, #E04A2B)"
-      : "#FDFAEC";
+    const bg = isLoginOrSplash ? "#D4803F" : "#FDFAEC";
+    document.documentElement.style.background = bg;
+    document.body.style.background = bg;
   }, [location.pathname, isAuthenticated]);
 
   const showNavigation = isAuthenticated &&
@@ -77,7 +78,7 @@ export default function Root() {
   if (!authChecked) return <SplashScreen />;
 
   return (
-    <div className="flex flex-col flex-1 bg-background overflow-hidden">
+    <div className="flex flex-col flex-1 overflow-hidden" style={{ background: "#FDFAEC" }}>
       {/* Scrollable content area */}
       <div className="flex-1 flex flex-col overflow-y-auto overflow-x-hidden">
         <Outlet />
