@@ -60,14 +60,19 @@ export default function Root() {
     return () => clearInterval(interval);
   }, [location.pathname]);
 
-  // Set background on html and body to match current page
-  // This ensures no gaps show wrong colors on any device
+  // Set background on html/body to match current page exactly
+  const isLoginPage = location.pathname === '/' && !isAuthenticated;
+  const isOnboardingPage = location.pathname === '/onboarding';
+
   useEffect(() => {
-    const isLoginOrSplash = location.pathname === '/' && !isAuthenticated;
-    const bg = isLoginOrSplash ? "#D4803F" : "#FDFAEC";
+    // Login/splash: match the Auth gradient start color
+    // Everything else: cream
+    const bg = isLoginPage ? "#D4803F" : "#FDFAEC";
     document.documentElement.style.background = bg;
+    document.documentElement.style.backgroundColor = bg;
     document.body.style.background = bg;
-  }, [location.pathname, isAuthenticated]);
+    document.body.style.backgroundColor = bg;
+  }, [isLoginPage]);
 
   const showNavigation = isAuthenticated &&
     location.pathname !== '/' &&
@@ -78,7 +83,7 @@ export default function Root() {
   if (!authChecked) return <SplashScreen />;
 
   return (
-    <div className="flex flex-col flex-1 overflow-hidden" style={{ background: "#FDFAEC" }}>
+    <div className={`flex flex-col flex-1 overflow-hidden ${isLoginPage ? "bg-gradient-to-br from-[#D4803F] to-[#E04A2B]" : "bg-[#FDFAEC]"}`}>
       {/* Scrollable content area */}
       <div className="flex-1 flex flex-col overflow-y-auto overflow-x-hidden">
         <Outlet />
