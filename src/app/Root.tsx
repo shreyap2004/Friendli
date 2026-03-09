@@ -6,7 +6,7 @@ const PROTECTED_ROUTES = ["/home", "/messages", "/profile", "/settings"];
 
 function SplashScreen() {
   return (
-    <div className="fixed inset-0 flex flex-col items-center justify-center bg-gradient-to-br from-[#D4803F] to-[#E04A2B]">
+    <div className="flex flex-col items-center justify-center bg-gradient-to-br from-[#D4803F] to-[#E04A2B]" style={{ minHeight: "100dvh" }}>
       <h1 className="text-5xl font-black text-white lowercase drop-shadow-md mb-2">friendli</h1>
       <p className="text-white/90 lowercase font-semibold drop-shadow-sm">make meaningful connections</p>
     </div>
@@ -62,6 +62,14 @@ export default function Root() {
 
   const isLoginPage = location.pathname === '/' && !isAuthenticated;
 
+  // This is the key: set html background to match the page edges.
+  // body has safe-area padding, so html background shows in those padding zones.
+  // On login: orange (matches gradient start). On other pages: cream.
+  useEffect(() => {
+    const bg = isLoginPage ? "#D4803F" : "#FDFAEC";
+    document.documentElement.style.background = bg;
+  }, [isLoginPage]);
+
   const showNavigation = isAuthenticated &&
     location.pathname !== '/' &&
     location.pathname !== '/onboarding';
@@ -70,21 +78,18 @@ export default function Root() {
 
   if (!authChecked) return <SplashScreen />;
 
-  // Background covers the ENTIRE screen including behind status bar.
-  // No padding on this container - the gradient/cream goes edge to edge.
   const bgClass = isLoginPage
     ? "bg-gradient-to-br from-[#D4803F] to-[#E04A2B]"
     : "bg-[#FDFAEC]";
 
   return (
-    <div className={`fixed inset-0 flex flex-col ${bgClass}`}>
-      {/* Content area with safe-area top padding so text avoids status bar */}
-      <div className="flex-1 flex flex-col overflow-y-auto overflow-x-hidden" style={{ paddingTop: "env(safe-area-inset-top)" }}>
+    <div className={`flex flex-col ${bgClass}`} style={{ minHeight: "100dvh" }}>
+      <div className="flex-1 flex flex-col overflow-y-auto overflow-x-hidden">
         <Outlet />
       </div>
 
       {showNavigation && (
-        <nav className="flex-shrink-0 bg-white border-t border-[#EE964B]/20 px-4 py-2 flex justify-around items-center z-50" style={{ paddingBottom: "env(safe-area-inset-bottom)" }}>
+        <nav className="flex-shrink-0 bg-white border-t border-[#EE964B]/20 px-4 py-2 flex justify-around items-center z-50">
           <button
             onClick={() => navigate('/home')}
             className={`flex flex-col items-center gap-0.5 px-3 py-1.5 rounded-xl transition-all ${
