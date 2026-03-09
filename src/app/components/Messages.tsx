@@ -260,11 +260,31 @@ export default function Messages() {
     }
   };
 
+  // Cache profiles so repeat taps are instant
+  const profileCacheRef = useRef<Record<string, unknown>>({});
+
   const handleViewProfile = async (userId: string) => {
+    // Show cached data immediately if available
+    if (profileCacheRef.current[userId]) {
+      setProfileData(profileCacheRef.current[userId]);
+      setShowProfile(true);
+      return;
+    }
+    // Show dialog immediately with basic info from chat
+    const chat = chats.find(c => c.participants?.includes(userId));
+    if (chat) {
+      setProfileData({
+        name: chat.participantNames?.[userId] || "loading...",
+        profilePhoto: chat.participantPhotos?.[userId] || null,
+      });
+      setShowProfile(true);
+    }
+    // Fetch full profile in background
     try {
       const result = await api.getUser(userId);
+      profileCacheRef.current[userId] = result.user;
       setProfileData(result.user);
-      setShowProfile(true);
+      if (!chat) setShowProfile(true);
     } catch { /* ignore */ }
   };
 
