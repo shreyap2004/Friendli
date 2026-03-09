@@ -6,7 +6,7 @@ const PROTECTED_ROUTES = ["/home", "/messages", "/profile", "/settings"];
 
 function SplashScreen() {
   return (
-    <div className="fixed inset-0 flex flex-col items-center justify-center bg-gradient-to-br from-[#D4803F] to-[#E04A2B]">
+    <div className="fixed inset-0 flex flex-col items-center justify-center bg-gradient-to-br from-[#D4803F] to-[#E04A2B]" style={{ paddingTop: "env(safe-area-inset-top)" }}>
       <h1 className="text-5xl font-black text-white lowercase drop-shadow-md mb-2">friendli</h1>
       <p className="text-white/90 lowercase font-semibold drop-shadow-sm">make meaningful connections</p>
     </div>
@@ -77,7 +77,7 @@ export default function Root() {
     : "bg-[#FDFAEC]";
 
   return (
-    <div className={`fixed inset-0 flex flex-col ${bgClass}`}>
+    <div className={`fixed inset-0 flex flex-col ${bgClass}`} style={{ paddingTop: "env(safe-area-inset-top)", paddingBottom: "env(safe-area-inset-bottom)" }}>
       {/* Scrollable content area */}
       <div className="flex-1 flex flex-col overflow-y-auto overflow-x-hidden">
         <Outlet />
