@@ -6,6 +6,7 @@ import { Textarea } from "./ui/textarea";
 import { Pencil, Save, Plus, X, Camera, ImagePlus } from "lucide-react";
 import { toast } from "sonner";
 import * as api from "@/lib/api";
+import { Dialog, DialogContent } from "./ui/dialog";
 import { geocodeZip } from "@/lib/geo";
 
 const HOBBIES = [
@@ -45,6 +46,7 @@ function compressImage(file: File, maxSize: number = 300): Promise<string> {
 export default function Profile() {
   const [isEditing, setIsEditing] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [showCard, setShowCard] = useState(false);
   const profilePhotoRef = useRef<HTMLInputElement>(null);
   const hobbyPhotoRef = useRef<HTMLInputElement>(null);
   const [uploadingHobby, setUploadingHobby] = useState<string | null>(null);
@@ -225,7 +227,9 @@ export default function Profile() {
               )}
             </div>
             <div>
-              <h2 className="text-lg font-black text-[#0D3B66] lowercase">{profile.name}</h2>
+              <button onClick={() => !isEditing && setShowCard(true)} className="text-left">
+                <h2 className="text-lg font-black text-[#0D3B66] lowercase">{profile.name}</h2>
+              </button>
               <p className="text-sm text-[#0D3B66]/50 lowercase font-medium">{profile.city}{profile.almaMater ? ` - ${profile.almaMater}` : ""}</p>
               {isEditing && (
                 <div className="flex gap-2 mt-1">
@@ -421,6 +425,58 @@ export default function Profile() {
           </div>
         </div>
       </div>
+
+      {/* Profile Card Popup */}
+      <Dialog open={showCard} onOpenChange={setShowCard}>
+        <DialogContent className="bg-white max-w-[400px] max-h-[85vh] overflow-y-auto p-0 rounded-2xl">
+          <div className="p-4 space-y-3">
+            <div className="flex items-center gap-3">
+              {profile.profilePhoto ? (
+                <img src={profile.profilePhoto} alt={profile.name} className="w-16 h-16 rounded-full object-cover border-2 border-[#EE964B]" />
+              ) : (
+                <div className="w-16 h-16 rounded-full bg-[#EE964B]/20 flex items-center justify-center border-2 border-[#EE964B]">
+                  <span className="text-[#EE964B] font-bold text-2xl">{profile.name?.[0]?.toUpperCase()}</span>
+                </div>
+              )}
+              <div>
+                <h3 className="text-lg font-bold text-[#0D3B66] lowercase">{profile.name}, {profile.age}</h3>
+                <p className="text-sm text-[#0D3B66]/50 lowercase">{profile.city}{profile.almaMater ? ` - ${profile.almaMater}` : ""}</p>
+              </div>
+            </div>
+            {profile.hobbyPhotos && Object.keys(profile.hobbyPhotos).length > 0 && (
+              <div className="flex gap-2 overflow-x-auto pb-1">
+                {Object.entries(profile.hobbyPhotos).map(([hobby, url]) => (
+                  url && (
+                    <div key={hobby} className="flex-shrink-0 relative">
+                      <img src={url} alt={hobby} className="w-24 h-24 rounded-xl object-cover" />
+                      <span className="absolute bottom-1 left-1 bg-[#EE964B] text-white text-[9px] px-2 py-0.5 rounded-full lowercase font-bold">{hobby}</span>
+                    </div>
+                  )
+                ))}
+              </div>
+            )}
+            {profile.hobbies.length > 0 && (
+              <div className="flex flex-wrap gap-1.5">
+                {profile.hobbies.map((hobby) => (
+                  <span key={hobby} className="px-2.5 py-1 rounded-full bg-[#EE964B]/10 text-[#EE964B] text-xs lowercase font-semibold">{hobby}</span>
+                ))}
+              </div>
+            )}
+            {profile.lookingFor && (
+              <div>
+                <p className="text-xs text-[#0D3B66]/40 lowercase font-semibold mb-1">looking for</p>
+                <p className="text-sm text-[#0D3B66] lowercase font-medium">{profile.lookingFor}</p>
+              </div>
+            )}
+            {profile.funFact && (
+              <div>
+                <p className="text-xs text-[#0D3B66]/40 lowercase font-semibold mb-1">fun fact</p>
+                <p className="text-sm text-[#0D3B66] lowercase font-medium italic">{profile.funFact}</p>
+              </div>
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

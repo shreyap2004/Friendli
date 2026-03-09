@@ -510,8 +510,12 @@ export default function Home() {
 
   return (
     <div className="flex flex-col min-h-full bg-[#FDFAEC]">
-      <div className="px-4 pt-4 pb-2 flex items-center justify-between border-b border-[#EE964B]/15">
-        <h1 className="text-2xl font-extrabold text-[#0D3B66] lowercase">discover</h1>
+      <div className="px-4 pt-4 pb-3 border-b border-[#EE964B]/15 mb-3">
+        <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-2xl font-extrabold text-[#0D3B66] lowercase">discover</h1>
+          <p className="text-[#EE964B] lowercase text-sm font-semibold">friend recommendations</p>
+        </div>
         <div className="flex gap-2">
           <button
             onClick={handleRefresh}
@@ -539,6 +543,7 @@ export default function Home() {
           >
             <SlidersHorizontal size={20} />
           </button>
+        </div>
         </div>
       </div>
 
