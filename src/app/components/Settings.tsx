@@ -22,35 +22,27 @@ export default function Settings() {
   const [showPaymentDialog, setShowPaymentDialog] = useState(false);
   const [premiumStatus, setPremiumStatus] = useState<{
     isPremium: boolean; hasTrialed: boolean; daysRemaining: number; expired: boolean; hoursRemaining?: number;
-  }>({ isPremium: false, hasTrialed: false, daysRemaining: 0, expired: false });
+  }>(() => {
+    // Initialize from localStorage immediately (no flash)
+    const user = api.getCurrentUser();
+    if (user?.premiumTrialStart) {
+      const trialEnd = user.premiumTrialStart + TRIAL_DURATION_MS;
+      const now = Date.now();
+      const isActive = now <= trialEnd || user.premiumSubscribed;
+      const hoursRemaining = isActive ? Math.ceil((trialEnd - now) / (60 * 60 * 1000)) : 0;
+      return {
+        isPremium: isActive,
+        hasTrialed: true,
+        daysRemaining: Math.ceil(hoursRemaining / 24),
+        hoursRemaining: Math.max(0, hoursRemaining),
+        expired: !isActive && !user.premiumSubscribed,
+      };
+    }
+    return { isPremium: false, hasTrialed: false, daysRemaining: 0, expired: false };
+  });
   const [loading, setLoading] = useState(false);
   const [paymentForm, setPaymentForm] = useState({ cardNumber: "", expiry: "", cvv: "", name: "" });
   const currentUser = api.getCurrentUser();
-
-  useEffect(() => {
-    if (currentUser?.id) {
-      api.checkPremium(currentUser.id)
-        .then((result) => {
-          // Recalculate with 48h trial
-          if (result.hasTrialed && currentUser.premiumTrialStart) {
-            const trialEnd = currentUser.premiumTrialStart + TRIAL_DURATION_MS;
-            const now = Date.now();
-            const isActive = now <= trialEnd || currentUser.premiumSubscribed;
-            const hoursRemaining = isActive ? Math.ceil((trialEnd - now) / (60 * 60 * 1000)) : 0;
-            setPremiumStatus({
-              isPremium: isActive,
-              hasTrialed: true,
-              daysRemaining: Math.ceil(hoursRemaining / 24),
-              hoursRemaining: Math.max(0, hoursRemaining),
-              expired: !isActive && !currentUser.premiumSubscribed,
-            });
-          } else {
-            setPremiumStatus(result);
-          }
-        })
-        .catch(() => {});
-    }
-  }, []);
 
   const handleLogout = () => {
     api.clearCurrentUser();
