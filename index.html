@@ -11,40 +11,8 @@
     <title>friendli</title>
     <style>
       *, *::before, *::after { box-sizing: border-box; }
-      html, body {
-        margin: 0;
-        padding: 0;
-        width: 100%;
-        overflow: hidden;
-        -webkit-overflow-scrolling: touch;
-      }
-      /* Use CSS custom property set by JS for exact viewport height */
-      html, body, #root {
-        height: 100vh;
-        height: var(--vh, 100vh);
-      }
-      #root {
-        display: flex;
-        flex-direction: column;
-        overflow: hidden;
-      }
+      html, body { margin: 0; padding: 0; }
     </style>
-    <script>
-      // Set --vh to the actual visible viewport height in pixels.
-      // This is the nuclear fix for iOS Safari viewport issues.
-      // window.innerHeight gives the exact pixel height of the visible area.
-      function setVH() {
-        var vh = window.innerHeight;
-        document.documentElement.style.setProperty('--vh', vh + 'px');
-        document.documentElement.style.height = vh + 'px';
-        document.body.style.height = vh + 'px';
-      }
-      setVH();
-      window.addEventListener('resize', setVH);
-      window.addEventListener('orientationchange', function() {
-        setTimeout(setVH, 100);
-      });
-    </script>
   </head>
   <body>
     <div id="root"></div>
