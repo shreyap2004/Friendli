@@ -130,7 +130,7 @@ export default function Settings() {
     : null;
 
   return (
-    <div className="flex-1 pb-4">
+    <div className="pb-4">
       {/* Header */}
       <div className="sticky top-0 z-10 bg-background/95 backdrop-blur-sm px-4 pt-5 pb-3 border-b border-[#EE964B]/15">
         <h1 className="text-2xl font-black text-[#0D3B66] lowercase">settings</h1>
