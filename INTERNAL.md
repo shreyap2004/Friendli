@@ -12,6 +12,7 @@ This document is for the development team. It covers implementation details, des
 - Email/password registration with server-side storage in Supabase KV
 - Passwords hashed with a simple 32-bit hash (demo-grade, not production cryptography)
 - Login returns user profile, redirects to onboarding if not completed
+- Login error: when a user tries to sign in with a non-existent email, the app shows "no account found with that email. try signing up!" and auto-switches to signup mode
 - Route guards: unauthenticated users are redirected to `/` from any protected page
 - Authenticated users on `/` are auto-redirected to `/home` if onboarded
 - Account deletion removes: user record, email lookup, all friendify records (sent and received), rejection records, and marks the user as `[deleted account]` in existing chats
@@ -34,7 +35,15 @@ This document is for the development team. It covers implementation details, des
 - Shows all onboarded users except: the current user, anyone already friendified, anyone already rejected
 - Free users see a maximum of 10 profiles per page load
 - Profiles display: name, age, city, alma mater, profile photo, hobby photos in a swipeable carousel, hobby tags, "looking for" text, and fun fact
+- "Friend recommendations" subtitle shown on the discover page
+- Border separator matching other pages, with spacing between header and first card
+- API results are cached for 30 seconds to reduce redundant fetches
 - Refresh button and pull-to-refresh gesture to reload profiles
+
+**No-Photo Profile Cards**
+- If a user has zero photos, the photo carousel is hidden entirely
+- Card layout goes straight from name to hobby tags to bio
+- Applies to both discover cards and profile card popups
 
 **Matching**
 - Purely mutual: User A friendifies User B, nothing visible happens to B
@@ -47,9 +56,23 @@ This document is for the development team. It covers implementation details, des
 - Messages stored in chat records in Supabase KV
 - Frontend polls for new messages every 5 seconds
 - Optimistic UI: message appears instantly, then syncs to server
+- Message input fixed at the bottom of the screen; messages scroll above it
+- Input bar uses a cream background instead of white
+- Typing indicator bug fixed (was previously showing constantly); now properly debounced
 - Typing indicators: debounced (sent every 2 seconds while typing, expires after 2 seconds of inactivity, polled every 3 seconds by the other user)
 - Read receipts: chat is marked as read when opened and when new messages arrive, polled every 5 seconds, shown as double checkmarks on sent messages
+- Tap a friend's avatar in the messages list to view their profile card without opening the chat
+- Tap a friend's name/photo in the chat header to view their profile card
+- Profile data is cached after first fetch for instant repeat views
 - Deleted account handling: shows "[deleted account]" name, gray "?" avatar, "this user has deleted their account" banner, message input disabled
+
+**Profile Card Popup**
+- Users can tap their name/photo on the profile page to see how others see their profile card
+- "Tap to see how others see you" hint displayed on the profile page
+- In the messages list, tapping a friend's avatar shows their profile card without opening the chat
+- In the chat header, tapping a friend's name/photo shows their profile card
+- Profile data is cached after first fetch for instant repeat views
+- No-photo users: if a user has zero photos, the photo carousel is hidden entirely; card goes straight from name to hobby tags to bio
 
 **Profile Editing**
 - All fields from onboarding are editable
@@ -64,6 +87,7 @@ This document is for the development team. It covers implementation details, des
 - Trial start time stored server-side in user record (`premiumTrialStart`)
 - Server checks `Date.now() <= premiumTrialStart + 48h` on every premium status request
 - When trial expires and user is not subscribed, `premium` flag is set to `false`
+- Premium status loads instantly from localStorage (no flash while waiting for server response)
 
 **Payment Flow (Simulated)**
 - After trial expires, a payment dialog appears with: name on card, card number, expiry, CVV fields
@@ -106,6 +130,28 @@ This document is for the development team. It covers implementation details, des
 - Green badge on each profile card: "X hobbies in common"
 - Visible to all users, but more useful combined with priority sorting for premium
 
+### Settings Page
+
+**Install Instructions**
+- Permanently displayed in settings as a navy card with 3 steps
+- Guides users through adding the app to their home screen (PWA install)
+
+**Premium Status Display**
+- Premium status loads instantly from localStorage to avoid a flash/loading state
+- Server response updates localStorage for next load
+
+### Layout & Appearance
+
+**Phone-First Design**
+- Designed for mobile-first with iOS safe area support
+- `status-bar-style=default` lets iOS handle safe areas naturally
+- Cream-colored navigation bar
+- Solid #D77240 orange login background (Safari cannot extend gradients into safe areas)
+
+**Service Worker**
+- Self-destroying service worker that clears all old caches on activation
+- Unregisters itself after cleanup to prevent stale content issues
+
 ---
 
 ## Design Decisions
@@ -133,6 +179,21 @@ This document is for the development team. It covers implementation details, des
 - Called once at profile save time, coordinates stored in user record
 - If the API is down, zip code is saved without coordinates (graceful degradation)
 - For production, Google Maps Geocoding API or Mapbox would be more reliable
+
+**Why solid login background instead of gradient?**
+- Safari on iOS cannot extend CSS gradients into safe areas (status bar, home indicator)
+- Changed from gradient to solid #D77240 orange for consistent appearance across all browsers
+- `status-bar-style=default` lets iOS handle safe areas naturally
+
+**Why a self-destroying service worker?**
+- Old service worker caches were causing stale content to persist
+- The self-destroying service worker clears all old caches on activation and then unregisters itself
+- Ensures users always get the latest version of the app
+
+**Why cache discover results and profile data?**
+- Discover page caches API results for 30 seconds to reduce redundant fetches when switching tabs
+- Profile popup caches user data after first fetch so repeat views are instant
+- Premium status is read from localStorage first to avoid a flash before the server responds
 
 **Why no real payment processing?**
 - This is a class project demo, not a commercial product
@@ -190,7 +251,7 @@ This document is for the development team. It covers implementation details, des
 | `src/app/components/Home.tsx` | Discover page: cards, carousel, filters, animations, confetti, pull-to-refresh |
 | `src/app/components/Messages.tsx` | Chat list and conversation: typing, read receipts, deleted accounts |
 | `src/app/components/Profile.tsx` | Profile view/edit with photo management |
-| `src/app/components/Settings.tsx` | Premium trial, mock payment, logout, account deletion |
+| `src/app/components/Settings.tsx` | Premium trial, mock payment, install instructions, logout, account deletion |
 | `supabase/functions/server/index.tsx` | Source for all backend endpoints |
 | `supabase/functions/make-server-50b042b1/` | Deployed copy of edge function (`.ts` extension for Supabase) |
 | `supabase/schema.sql` | Database table creation + key pattern documentation |

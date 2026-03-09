@@ -35,11 +35,13 @@ All data is stored in Supabase PostgreSQL. User accounts, profiles, matches, mes
 ### Free
 
 - Email/password account creation
+- Login error handling: non-existent email shows "no account found with that email. try signing up!" and auto-switches to signup mode
 - 5-step profile onboarding (basic info, bio, hobbies, photo upload, preferences)
 - Profile photo and hobby photo uploads
-- Discover up to 10 new profiles per day
+- Discover up to 10 new profiles per day (with "friend recommendations" subtitle)
 - Mutual matching (both users must friendify each other)
 - Real-time messaging with matches
+- Profile card popup (tap to preview your own or a friend's profile)
 - Profile editing (update info, hobbies, photos anytime)
 - Profile preview during onboarding
 - Account deletion with server-side cleanup
@@ -61,10 +63,25 @@ Everything in Free, plus:
 - Real-time messaging with 5-second polling
 - Typing indicators (animated dots when the other person is typing)
 - Read receipts (double checkmarks on seen messages)
+- Message input fixed at bottom of screen (messages scroll above)
+- Cream-colored input bar
+- Tap a friend's avatar in the messages list to view their profile card without opening the chat
+- Tap a friend's name/photo in the chat header to view their profile card
 - Deleted account handling (graceful "[deleted account]" display)
+
+### Profile Card Popup
+
+- Tap your name/photo on the profile page to preview how others see your profile card
+- "Tap to see how others see you" hint displayed on the profile page
+- Tap a friend's avatar or name in messages to view their profile card
+- Profile data is cached after first fetch for instant repeat views
+- If a user has zero photos, the photo carousel is hidden entirely (card shows name, hobby tags, then bio)
 
 ### UI/UX
 
+- Phone-first design with iOS safe area support (status-bar-style=default)
+- Solid #D77240 orange login background (replaced gradient for Safari safe area compatibility)
+- Cream-colored navigation bar
 - Match celebration with confetti animation
 - Smooth card slide-out animations (left for bye, right for friendify)
 - Pull-to-refresh on discover page
@@ -72,6 +89,13 @@ Everything in Free, plus:
 - Polished empty states with illustrations
 - Mobile-first responsive design (430px phone frame)
 - Bottom navigation with unread match badges
+- Self-destroying service worker that clears old caches
+
+### Caching
+
+- Discover page caches API results for 30 seconds
+- Profile popup caches user data after first fetch
+- Premium status loads instantly from localStorage (no flash)
 
 ---
 
