@@ -253,7 +253,7 @@ function ProfileCard({ user, onFriendify, onBye, isInteracted, commonHobbiesCoun
         )}
       </div>
 
-      <PhotoCarousel photos={photos} />
+      {photos.length > 0 && <PhotoCarousel photos={photos} />}
 
       {user.hobbies && user.hobbies.length > 0 && (
         <div className="px-4 pt-2 flex flex-wrap gap-1.5">
