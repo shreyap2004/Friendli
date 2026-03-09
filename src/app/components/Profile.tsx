@@ -254,7 +254,7 @@ export default function Profile() {
                 {isEditing ? (
                   <Input value={profile.name} onChange={(e) => setProfile({ ...profile, name: e.target.value })} className="lowercase bg-[#FDFAEC] border-[#EE964B]/30 text-sm" />
                 ) : (
-                  <p className="text-[#0D3B66] lowercase py-1.5 font-medium text-sm">{profile.name || "not set"}</p>
+                  <div className="lowercase bg-[#FDFAEC] border border-[#EE964B]/20 rounded-md px-3 py-2 text-[#0D3B66] text-sm font-medium">{profile.name || "not set"}</div>
                 )}
               </div>
               <div className="space-y-1">
@@ -262,7 +262,7 @@ export default function Profile() {
                 {isEditing ? (
                   <Input type="number" value={profile.age} onChange={(e) => setProfile({ ...profile, age: e.target.value })} className="bg-[#FDFAEC] border-[#EE964B]/30 text-sm" />
                 ) : (
-                  <p className="text-[#0D3B66] py-1.5 font-medium text-sm">{profile.age || "not set"}</p>
+                  <div className="bg-[#FDFAEC] border border-[#EE964B]/20 rounded-md px-3 py-2 text-[#0D3B66] text-sm font-medium">{profile.age || "not set"}</div>
                 )}
               </div>
             </div>
@@ -271,7 +271,7 @@ export default function Profile() {
               {isEditing ? (
                 <Input value={profile.almaMater} onChange={(e) => setProfile({ ...profile, almaMater: e.target.value })} className="lowercase bg-[#FDFAEC] border-[#EE964B]/30 text-sm" />
               ) : (
-                <p className="text-[#0D3B66] lowercase py-1.5 font-medium text-sm">{profile.almaMater || "not set"}</p>
+                <div className="lowercase bg-[#FDFAEC] border border-[#EE964B]/20 rounded-md px-3 py-2 text-[#0D3B66] text-sm font-medium">{profile.almaMater || "not set"}</div>
               )}
             </div>
             <div className="grid grid-cols-2 gap-3">
@@ -280,7 +280,7 @@ export default function Profile() {
                 {isEditing ? (
                   <Input value={profile.gender} onChange={(e) => setProfile({ ...profile, gender: e.target.value })} className="lowercase bg-[#FDFAEC] border-[#EE964B]/30 text-sm" />
                 ) : (
-                  <p className="text-[#0D3B66] lowercase py-1.5 font-medium text-sm">{profile.gender || "not set"}</p>
+                  <div className="lowercase bg-[#FDFAEC] border border-[#EE964B]/20 rounded-md px-3 py-2 text-[#0D3B66] text-sm font-medium">{profile.gender || "not set"}</div>
                 )}
               </div>
               <div className="space-y-1">
@@ -288,7 +288,7 @@ export default function Profile() {
                 {isEditing ? (
                   <Input value={profile.city} onChange={(e) => setProfile({ ...profile, city: e.target.value })} className="lowercase bg-[#FDFAEC] border-[#EE964B]/30 text-sm" />
                 ) : (
-                  <p className="text-[#0D3B66] lowercase py-1.5 font-medium text-sm">{profile.city || "not set"}</p>
+                  <div className="lowercase bg-[#FDFAEC] border border-[#EE964B]/20 rounded-md px-3 py-2 text-[#0D3B66] text-sm font-medium">{profile.city || "not set"}</div>
                 )}
               </div>
             </div>
@@ -297,7 +297,7 @@ export default function Profile() {
               {isEditing ? (
                 <Input value={profile.zipCode} onChange={(e) => setProfile({ ...profile, zipCode: e.target.value })} className="bg-[#FDFAEC] border-[#EE964B]/30 text-sm" placeholder="e.g., 90210" />
               ) : (
-                <p className="text-[#0D3B66] py-1.5 font-medium text-sm">{profile.zipCode || "not set"}</p>
+                <div className="bg-[#FDFAEC] border border-[#EE964B]/20 rounded-md px-3 py-2 text-[#0D3B66] text-sm font-medium">{profile.zipCode || "not set"}</div>
               )}
             </div>
           </div>
@@ -310,7 +310,7 @@ export default function Profile() {
               {isEditing ? (
                 <Textarea value={profile.funFact} onChange={(e) => setProfile({ ...profile, funFact: e.target.value })} className="lowercase bg-[#FDFAEC] border-[#EE964B]/30 min-h-20 text-sm" />
               ) : (
-                <p className="text-[#0D3B66] lowercase py-1.5 font-medium text-sm">{profile.funFact || "not set"}</p>
+                <div className="lowercase bg-[#FDFAEC] border border-[#EE964B]/20 rounded-md px-3 py-2 text-[#0D3B66] text-sm font-medium">{profile.funFact || "not set"}</div>
               )}
             </div>
             <div className="space-y-1">
@@ -318,7 +318,7 @@ export default function Profile() {
               {isEditing ? (
                 <Textarea value={profile.lookingFor} onChange={(e) => setProfile({ ...profile, lookingFor: e.target.value })} className="lowercase bg-[#FDFAEC] border-[#EE964B]/30 min-h-20 text-sm" />
               ) : (
-                <p className="text-[#0D3B66] lowercase py-1.5 font-medium text-sm">{profile.lookingFor || "not set"}</p>
+                <div className="lowercase bg-[#FDFAEC] border border-[#EE964B]/20 rounded-md px-3 py-2 text-[#0D3B66] text-sm font-medium">{profile.lookingFor || "not set"}</div>
               )}
             </div>
           </div>

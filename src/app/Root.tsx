@@ -6,7 +6,7 @@ const PROTECTED_ROUTES = ["/home", "/messages", "/profile", "/settings"];
 
 function SplashScreen() {
   return (
-    <div className="fixed inset-0 flex flex-col items-center justify-center bg-[#D77240]">
+    <div className="flex flex-col items-center justify-center flex-1 bg-[#D77240]">
       <h1 className="text-5xl font-black text-white lowercase drop-shadow-md mb-2">friendli</h1>
       <p className="text-white/90 lowercase font-semibold drop-shadow-sm">make meaningful connections</p>
     </div>
@@ -62,14 +62,10 @@ export default function Root() {
 
   const isLoginPage = location.pathname === '/' && !isAuthenticated;
 
-  // THE FIX: Set the html and body background-color to match the page.
-  // With viewport-fit=cover + black-translucent, Safari renders our content
-  // behind the status bar. But the area OUTSIDE our content (the safe area
-  // margins) shows html/body background. By matching it, the bars disappear.
   useEffect(() => {
     const bg = isLoginPage ? "#D77240" : "#FDFAEC";
-    document.documentElement.style.cssText = `margin:0;padding:0;background:${bg};height:100%;overflow:hidden`;
-    document.body.style.cssText = `margin:0;padding:0;background:${bg};height:100%;overflow:hidden`;
+    document.documentElement.style.background = bg;
+    document.body.style.background = bg;
   }, [isLoginPage]);
 
   const showNavigation = isAuthenticated &&
@@ -80,25 +76,20 @@ export default function Root() {
 
   if (!authChecked) return <SplashScreen />;
 
-  const bgClass = isLoginPage
-    ? "bg-[#D77240]"
-    : "bg-[#FDFAEC]";
+  const bgClass = isLoginPage ? "bg-[#D77240]" : "bg-[#FDFAEC]";
 
   return (
-    <div className={`fixed inset-0 flex flex-col ${bgClass}`}>
-      {/* Top safe area spacer - pushes content below status bar */}
-      <div className="flex-shrink-0" style={{ height: "env(safe-area-inset-top, 0px)" }} />
-
+    <div className={`flex flex-col flex-1 ${bgClass}`}>
       <div className="flex-1 flex flex-col overflow-y-auto overflow-x-hidden">
         <Outlet />
       </div>
 
       {showNavigation && (
-        <nav className="flex-shrink-0 bg-white border-t border-[#EE964B]/20 px-4 py-2 flex justify-around items-center z-50" style={{ paddingBottom: "env(safe-area-inset-bottom, 0px)" }}>
+        <nav className="flex-shrink-0 bg-white border-t border-[#EE964B]/20 px-4 py-2 flex justify-around items-center z-50">
           <button
             onClick={() => navigate('/home')}
             className={`flex flex-col items-center gap-0.5 px-3 py-1.5 rounded-xl transition-all ${
-              isActive('/home') ? 'text-[#D77240] bg-[#D77240]/10' : 'text-[#0D3B66]/40'
+              isActive('/home') ? 'text-[#EE964B] bg-[#EE964B]/10' : 'text-[#0D3B66]/40'
             }`}
           >
             <Home size={22} strokeWidth={isActive('/home') ? 2.5 : 2} />
@@ -107,7 +98,7 @@ export default function Root() {
           <button
             onClick={() => navigate('/messages')}
             className={`flex flex-col items-center gap-0.5 px-3 py-1.5 rounded-xl transition-all relative ${
-              isActive('/messages') ? 'text-[#D77240] bg-[#D77240]/10' : 'text-[#0D3B66]/40'
+              isActive('/messages') ? 'text-[#EE964B] bg-[#EE964B]/10' : 'text-[#0D3B66]/40'
             }`}
           >
             <MessageCircle size={22} strokeWidth={isActive('/messages') ? 2.5 : 2} />
@@ -121,7 +112,7 @@ export default function Root() {
           <button
             onClick={() => navigate('/profile')}
             className={`flex flex-col items-center gap-0.5 px-3 py-1.5 rounded-xl transition-all ${
-              isActive('/profile') ? 'text-[#D77240] bg-[#D77240]/10' : 'text-[#0D3B66]/40'
+              isActive('/profile') ? 'text-[#EE964B] bg-[#EE964B]/10' : 'text-[#0D3B66]/40'
             }`}
           >
             <User size={22} strokeWidth={isActive('/profile') ? 2.5 : 2} />
@@ -130,7 +121,7 @@ export default function Root() {
           <button
             onClick={() => navigate('/settings')}
             className={`flex flex-col items-center gap-0.5 px-3 py-1.5 rounded-xl transition-all ${
-              isActive('/settings') ? 'text-[#D77240] bg-[#D77240]/10' : 'text-[#0D3B66]/40'
+              isActive('/settings') ? 'text-[#EE964B] bg-[#EE964B]/10' : 'text-[#0D3B66]/40'
             }`}
           >
             <Settings size={22} strokeWidth={isActive('/settings') ? 2.5 : 2} />
