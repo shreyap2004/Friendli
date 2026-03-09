@@ -215,10 +215,16 @@ export default function Profile() {
       <div className="px-4 py-4 space-y-4">
         {/* Profile Photo */}
         <div className="bg-white rounded-2xl shadow-lg p-5">
-          <div className="flex items-center gap-4">
+          <button
+            className="flex items-center gap-4 w-full text-left"
+            onClick={() => {
+              if (isEditing) return;
+              setShowCard(true);
+            }}
+          >
             <div
-              onClick={() => isEditing && profilePhotoRef.current?.click()}
-              className={`w-20 h-20 rounded-full border-3 border-[#EE964B] flex items-center justify-center overflow-hidden bg-[#FDFAEC] ${isEditing ? "cursor-pointer" : ""}`}
+              onClick={(e) => { if (isEditing) { e.stopPropagation(); profilePhotoRef.current?.click(); } }}
+              className={`w-20 h-20 rounded-full border-3 border-[#EE964B] flex items-center justify-center overflow-hidden bg-[#FDFAEC] flex-shrink-0 ${isEditing ? "cursor-pointer" : ""}`}
             >
               {profile.profilePhoto ? (
                 <img src={profile.profilePhoto} alt="profile" className="w-full h-full object-cover" />
@@ -227,9 +233,7 @@ export default function Profile() {
               )}
             </div>
             <div>
-              <button onClick={() => !isEditing && setShowCard(true)} className="text-left">
-                <h2 className="text-lg font-black text-[#0D3B66] lowercase">{profile.name}</h2>
-              </button>
+              <h2 className="text-lg font-black text-[#0D3B66] lowercase">{profile.name}</h2>
               <p className="text-sm text-[#0D3B66]/50 lowercase font-medium">{profile.city}{profile.almaMater ? ` - ${profile.almaMater}` : ""}</p>
               {isEditing && (
                 <div className="flex gap-2 mt-1">
@@ -244,7 +248,7 @@ export default function Profile() {
                 </div>
               )}
             </div>
-          </div>
+          </button>
           <input ref={profilePhotoRef} type="file" accept="image/*" className="hidden" onChange={handleProfilePhotoUpload} />
         </div>
 
