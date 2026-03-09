@@ -86,12 +86,15 @@ export default function Root() {
 
   return (
     <div className={`fixed inset-0 flex flex-col ${bgClass}`}>
+      {/* Top safe area spacer - pushes content below status bar */}
+      <div className="flex-shrink-0" style={{ height: "env(safe-area-inset-top, 0px)" }} />
+
       <div className="flex-1 flex flex-col overflow-y-auto overflow-x-hidden">
         <Outlet />
       </div>
 
       {showNavigation && (
-        <nav className="flex-shrink-0 bg-white border-t border-[#DA6534]/20 px-4 py-2 flex justify-around items-center z-50">
+        <nav className="flex-shrink-0 bg-white border-t border-[#EE964B]/20 px-4 py-2 flex justify-around items-center z-50" style={{ paddingBottom: "env(safe-area-inset-bottom, 0px)" }}>
           <button
             onClick={() => navigate('/home')}
             className={`flex flex-col items-center gap-0.5 px-3 py-1.5 rounded-xl transition-all ${
