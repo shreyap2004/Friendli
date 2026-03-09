@@ -312,7 +312,16 @@ export default function Home() {
   const [whoLikedYou, setWhoLikedYou] = useState<UserProfile[]>([]);
   const [filters, setFilters] = useState<Filters>({ ageMin: "", ageMax: "", city: "", hobbies: [], personality: "", radius: "" });
   const currentUser = api.getCurrentUser();
-  const [premiumStatus, setPremiumStatus] = useState<{ isPremium: boolean; daysRemaining: number }>({ isPremium: false, daysRemaining: 0 });
+  const [premiumStatus, setPremiumStatus] = useState<{ isPremium: boolean; daysRemaining: number }>(() => {
+    // Initialize from localStorage (instant, no API call needed)
+    const user = api.getCurrentUser();
+    if (user?.premiumTrialStart) {
+      const trialEnd = user.premiumTrialStart + (48 * 60 * 60 * 1000);
+      const isActive = Date.now() <= trialEnd || user.premiumSubscribed;
+      return { isPremium: isActive, daysRemaining: isActive ? Math.ceil((trialEnd - Date.now()) / (24 * 60 * 60 * 1000)) : 0 };
+    }
+    return { isPremium: false, daysRemaining: 0 };
+  });
 
   // Slide-out animation state
   const [slidingOut, setSlidingOut] = useState<{ id: string; direction: "left" | "right" } | null>(null);
@@ -333,8 +342,19 @@ export default function Home() {
     loadData();
   }, []);
 
+  // Cache discover data for 30 seconds to avoid re-fetching on tab switches
+  const discoverCacheRef = useRef<{ data: unknown; time: number } | null>(null);
+
   const loadData = async () => {
     if (!currentUser) return;
+
+    // Use cached data if less than 30 seconds old
+    const cache = discoverCacheRef.current;
+    if (cache && Date.now() - cache.time < 30000 && !refreshing) {
+      setLoading(false);
+      return;
+    }
+
     setLoading(true);
     try {
       const [discoverResult, interactionsResult, premiumResult] = await Promise.all([
@@ -342,6 +362,8 @@ export default function Home() {
         api.getInteractions(currentUser.id),
         api.checkPremium(currentUser.id).catch(() => ({ isPremium: false, daysRemaining: 0 })),
       ]);
+
+      discoverCacheRef.current = { data: true, time: Date.now() };
 
       setPremiumStatus(premiumResult);
 
