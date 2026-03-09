@@ -3,7 +3,6 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="initial-scale=1, viewport-fit=cover, width=device-width, maximum-scale=1, user-scalable=no" />
-    <meta name="theme-color" content="#D4803F" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
     <meta name="apple-mobile-web-app-title" content="friendli" />
@@ -12,29 +11,7 @@
     <title>friendli</title>
     <style>
       *, *::before, *::after { box-sizing: border-box; }
-      html {
-        margin: 0;
-        padding: 0;
-        /* This is the key fix: extend html behind the iOS status bar */
-        min-height: calc(100% + env(safe-area-inset-top));
-        overflow: hidden;
-      }
-      body {
-        margin: 0;
-        padding: 0;
-        height: 100%;
-        overflow: hidden;
-      }
-      #root {
-        position: fixed;
-        top: 0;
-        left: 0;
-        right: 0;
-        bottom: 0;
-        display: flex;
-        flex-direction: column;
-        overflow: hidden;
-      }
+      html, body { margin: 0; padding: 0; overflow: hidden; background: transparent; }
     </style>
   </head>
   <body>
