@@ -6,7 +6,7 @@ const PROTECTED_ROUTES = ["/home", "/messages", "/profile", "/settings"];
 
 function SplashScreen() {
   return (
-    <div className="flex flex-col items-center justify-center flex-1 bg-gradient-to-br from-[#D4803F] to-[#E04A2B]">
+    <div className="fixed inset-0 flex flex-col items-center justify-center bg-gradient-to-br from-[#D4803F] to-[#E04A2B]">
       <h1 className="text-5xl font-black text-white lowercase drop-shadow-md mb-2">friendli</h1>
       <p className="text-white/90 lowercase font-semibold drop-shadow-sm">make meaningful connections</p>
     </div>
@@ -60,19 +60,7 @@ export default function Root() {
     return () => clearInterval(interval);
   }, [location.pathname]);
 
-  // Set background on html/body to match current page exactly
   const isLoginPage = location.pathname === '/' && !isAuthenticated;
-  const isOnboardingPage = location.pathname === '/onboarding';
-
-  useEffect(() => {
-    // Login/splash: match the Auth gradient start color
-    // Everything else: cream
-    const bg = isLoginPage ? "#D4803F" : "#FDFAEC";
-    document.documentElement.style.background = bg;
-    document.documentElement.style.backgroundColor = bg;
-    document.body.style.background = bg;
-    document.body.style.backgroundColor = bg;
-  }, [isLoginPage]);
 
   const showNavigation = isAuthenticated &&
     location.pathname !== '/' &&
@@ -82,8 +70,14 @@ export default function Root() {
 
   if (!authChecked) return <SplashScreen />;
 
+  // The entire app is position:fixed covering the full viewport.
+  // This guarantees no gaps on any device - Safari, Chrome, PWA, etc.
+  const bgClass = isLoginPage
+    ? "bg-gradient-to-br from-[#D4803F] to-[#E04A2B]"
+    : "bg-[#FDFAEC]";
+
   return (
-    <div className={`flex flex-col flex-1 overflow-hidden ${isLoginPage ? "bg-gradient-to-br from-[#D4803F] to-[#E04A2B]" : "bg-[#FDFAEC]"}`}>
+    <div className={`fixed inset-0 flex flex-col ${bgClass}`}>
       {/* Scrollable content area */}
       <div className="flex-1 flex flex-col overflow-y-auto overflow-x-hidden">
         <Outlet />
