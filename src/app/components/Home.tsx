@@ -159,7 +159,7 @@ function PhotoCarousel({ photos }: { photos: { url: string; label: string }[] })
           <div className="aspect-square relative overflow-hidden">
             <img src={photos[0].url} alt={photos[0].label} className="w-full h-full object-cover" draggable={false} />
             {photos[0].label && (
-              <div className="absolute bottom-3 left-1/2 -translate-x-1/2 bg-[#EE964B] text-white px-4 py-1.5 rounded-full shadow-lg lowercase font-bold text-sm">
+              <div className="absolute bottom-3 right-3 bg-[#EE964B] text-white px-4 py-1.5 rounded-full shadow-lg lowercase font-bold text-sm">
                 {photos[0].label}
               </div>
             )}
@@ -197,7 +197,7 @@ function PhotoCarousel({ photos }: { photos: { url: string; label: string }[] })
           </div>
         )}
         {photos[current].label && photos[current].url && (
-          <div className="absolute bottom-3 left-1/2 -translate-x-1/2 bg-[#EE964B] text-white px-4 py-1.5 rounded-full shadow-lg lowercase font-bold text-sm">
+          <div className="absolute bottom-3 right-3 bg-[#EE964B] text-white px-4 py-1.5 rounded-full shadow-lg lowercase font-bold text-sm">
             {photos[current].label}
           </div>
         )}
