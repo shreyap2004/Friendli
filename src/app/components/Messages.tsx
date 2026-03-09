@@ -4,6 +4,7 @@ import { Input } from "./ui/input";
 import { ArrowLeft, Send, Sparkles, HandMetal, CheckCheck, MessageCircle, Heart } from "lucide-react";
 import { motion } from "motion/react";
 import * as api from "@/lib/api";
+import { Dialog, DialogContent } from "./ui/dialog";
 
 interface Message {
   id: string;
@@ -54,6 +55,8 @@ export default function Messages() {
   const [loading, setLoading] = useState(true);
   const [otherUserTyping, setOtherUserTyping] = useState(false);
   const [readAt, setReadAt] = useState<number | null>(null);
+  const [showProfile, setShowProfile] = useState(false);
+  const [profileData, setProfileData] = useState<any>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const typingTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const lastTypingSentRef = useRef<number>(0);
@@ -254,6 +257,18 @@ export default function Messages() {
     }
   };
 
+  const handleViewProfile = async () => {
+    if (!selectedChat) return;
+    const deleted = isOtherUserDeleted(selectedChat);
+    if (deleted) return;
+    const otherId = getOtherUserId(selectedChat);
+    try {
+      const result = await api.getUser(otherId);
+      setProfileData(result.user);
+      setShowProfile(true);
+    } catch { /* ignore */ }
+  };
+
   // Sort chats: new matches first, then by most recent message/match time
   const sortedChats = [...chats].sort((a, b) => {
     if (a.isNewMatch && !b.isNewMatch) return -1;
@@ -274,20 +289,22 @@ export default function Messages() {
           <button onClick={() => { setSelectedChat(null); loadChats(); }} className="text-[#0D3B66] hover:text-[#EE964B]">
             <ArrowLeft size={22} strokeWidth={2.5} />
           </button>
-          {deleted ? (
-            <div className="w-9 h-9 rounded-full bg-gray-300 flex items-center justify-center border-2 border-gray-400">
-              <span className="text-gray-500 font-bold text-sm">?</span>
+          <button onClick={handleViewProfile} className="flex items-center gap-3 flex-1" disabled={deleted}>
+            {deleted ? (
+              <div className="w-9 h-9 rounded-full bg-gray-300 flex items-center justify-center border-2 border-gray-400">
+                <span className="text-gray-500 font-bold text-sm">?</span>
+              </div>
+            ) : otherPhoto ? (
+              <img src={otherPhoto} alt={otherName} className="w-9 h-9 rounded-full object-cover border-2 border-[#EE964B]" />
+            ) : (
+              <div className="w-9 h-9 rounded-full bg-[#EE964B]/20 flex items-center justify-center border-2 border-[#EE964B]">
+                <span className="text-[#EE964B] font-bold text-sm">{otherName?.[0]?.toUpperCase()}</span>
+              </div>
+            )}
+            <div>
+              <h3 className={`font-bold lowercase text-sm ${deleted ? "text-gray-400" : "text-[#0D3B66]"}`}>{otherName}</h3>
             </div>
-          ) : otherPhoto ? (
-            <img src={otherPhoto} alt={otherName} className="w-9 h-9 rounded-full object-cover border-2 border-[#EE964B]" />
-          ) : (
-            <div className="w-9 h-9 rounded-full bg-[#EE964B]/20 flex items-center justify-center border-2 border-[#EE964B]">
-              <span className="text-[#EE964B] font-bold text-sm">{otherName?.[0]?.toUpperCase()}</span>
-            </div>
-          )}
-          <div>
-            <h3 className={`font-bold lowercase text-sm ${deleted ? "text-gray-400" : "text-[#0D3B66]"}`}>{otherName}</h3>
-          </div>
+          </button>
         </div>
 
         <div className="flex-1 overflow-y-auto px-4 py-4 space-y-3 bg-[#FDFAEC]">
@@ -381,6 +398,68 @@ export default function Messages() {
             </div>
           )}
         </div>
+
+        <Dialog open={showProfile} onOpenChange={setShowProfile}>
+          <DialogContent className="bg-white max-w-[400px] max-h-[85vh] overflow-y-auto p-0 rounded-2xl">
+            {profileData && (
+              <div className="p-4 space-y-3">
+                {/* Profile photo */}
+                <div className="flex items-center gap-3">
+                  {profileData.profilePhoto ? (
+                    <img src={profileData.profilePhoto} alt={profileData.name} className="w-16 h-16 rounded-full object-cover border-2 border-[#EE964B]" />
+                  ) : (
+                    <div className="w-16 h-16 rounded-full bg-[#EE964B]/20 flex items-center justify-center border-2 border-[#EE964B]">
+                      <span className="text-[#EE964B] font-bold text-2xl">{profileData.name?.[0]?.toUpperCase()}</span>
+                    </div>
+                  )}
+                  <div>
+                    <h3 className="text-lg font-bold text-[#0D3B66] lowercase">{profileData.name}, {profileData.age}</h3>
+                    <p className="text-sm text-[#0D3B66]/50 lowercase">{profileData.city}{profileData.almaMater ? ` - ${profileData.almaMater}` : ""}</p>
+                  </div>
+                </div>
+
+                {/* Hobby photos */}
+                {profileData.hobbyPhotos && Object.keys(profileData.hobbyPhotos).length > 0 && (
+                  <div className="flex gap-2 overflow-x-auto pb-1">
+                    {Object.entries(profileData.hobbyPhotos).map(([hobby, url]: [string, any]) => (
+                      url && (
+                        <div key={hobby} className="flex-shrink-0 relative">
+                          <img src={url} alt={hobby} className="w-24 h-24 rounded-xl object-cover" />
+                          <span className="absolute bottom-1 left-1 bg-[#EE964B] text-white text-[9px] px-2 py-0.5 rounded-full lowercase font-bold">{hobby}</span>
+                        </div>
+                      )
+                    ))}
+                  </div>
+                )}
+
+                {/* Hobbies */}
+                {profileData.hobbies?.length > 0 && (
+                  <div className="flex flex-wrap gap-1.5">
+                    {profileData.hobbies.map((hobby: string) => (
+                      <span key={hobby} className="px-2.5 py-1 rounded-full bg-[#EE964B]/10 text-[#EE964B] text-xs lowercase font-semibold">{hobby}</span>
+                    ))}
+                  </div>
+                )}
+
+                {/* Looking for */}
+                {profileData.lookingFor && (
+                  <div>
+                    <p className="text-xs text-[#0D3B66]/40 lowercase font-semibold mb-1">looking for</p>
+                    <p className="text-sm text-[#0D3B66] lowercase font-medium">{profileData.lookingFor}</p>
+                  </div>
+                )}
+
+                {/* Fun fact */}
+                {profileData.funFact && (
+                  <div>
+                    <p className="text-xs text-[#0D3B66]/40 lowercase font-semibold mb-1">fun fact</p>
+                    <p className="text-sm text-[#0D3B66] lowercase font-medium italic">{profileData.funFact}</p>
+                  </div>
+                )}
+              </div>
+            )}
+          </DialogContent>
+        </Dialog>
       </div>
     );
   }
