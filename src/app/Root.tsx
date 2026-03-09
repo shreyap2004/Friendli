@@ -6,7 +6,7 @@ const PROTECTED_ROUTES = ["/home", "/messages", "/profile", "/settings"];
 
 function SplashScreen() {
   return (
-    <div className="fixed inset-0 flex flex-col items-center justify-center bg-gradient-to-br from-[#D4803F] to-[#E04A2B]">
+    <div className="fixed inset-0 flex flex-col items-center justify-center bg-[#EE964B]">
       <h1 className="text-5xl font-black text-white lowercase drop-shadow-md mb-2">friendli</h1>
       <p className="text-white/90 lowercase font-semibold drop-shadow-sm">make meaningful connections</p>
     </div>
@@ -67,7 +67,7 @@ export default function Root() {
   // behind the status bar. But the area OUTSIDE our content (the safe area
   // margins) shows html/body background. By matching it, the bars disappear.
   useEffect(() => {
-    const bg = isLoginPage ? "#D4803F" : "#FDFAEC";
+    const bg = isLoginPage ? "#EE964B" : "#FDFAEC";
     document.documentElement.style.cssText = `margin:0;padding:0;background:${bg};height:100%;overflow:hidden`;
     document.body.style.cssText = `margin:0;padding:0;background:${bg};height:100%;overflow:hidden`;
   }, [isLoginPage]);
@@ -81,7 +81,7 @@ export default function Root() {
   if (!authChecked) return <SplashScreen />;
 
   const bgClass = isLoginPage
-    ? "bg-gradient-to-br from-[#D4803F] to-[#E04A2B]"
+    ? "bg-[#EE964B]"
     : "bg-[#FDFAEC]";
 
   return (
