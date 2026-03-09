@@ -53,7 +53,12 @@ export default function Auth() {
       }
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : "something went wrong";
-      toast.error(message);
+      if (!isSignUp && message.toLowerCase().includes("invalid")) {
+        toast.error("no account found with that email. try signing up!", { duration: 4000 });
+        setIsSignUp(true);
+      } else {
+        toast.error(message);
+      }
     } finally {
       setLoading(false);
     }
