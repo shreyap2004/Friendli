@@ -140,7 +140,7 @@ export default function Messages() {
     const interval = setInterval(async () => {
       try {
         const result = await api.getTyping(selectedChat.id, otherId);
-        setOtherUserTyping(!!result);
+        setOtherUserTyping(!!result?.isTyping);
       } catch {
         setOtherUserTyping(false);
       }
@@ -395,73 +395,81 @@ export default function Messages() {
           )}
         </div>
 
-        <Dialog open={showProfile} onOpenChange={setShowProfile}>
-          <DialogContent className="bg-white max-w-[400px] max-h-[85vh] overflow-y-auto p-0 rounded-2xl">
-            {profileData && (
-              <div className="p-4 space-y-3">
-                {/* Profile photo */}
-                <div className="flex items-center gap-3">
-                  {profileData.profilePhoto ? (
-                    <img src={profileData.profilePhoto} alt={profileData.name} className="w-16 h-16 rounded-full object-cover border-2 border-[#EE964B]" />
-                  ) : (
-                    <div className="w-16 h-16 rounded-full bg-[#EE964B]/20 flex items-center justify-center border-2 border-[#EE964B]">
-                      <span className="text-[#EE964B] font-bold text-2xl">{profileData.name?.[0]?.toUpperCase()}</span>
-                    </div>
-                  )}
-                  <div>
-                    <h3 className="text-lg font-bold text-[#0D3B66] lowercase">{profileData.name}, {profileData.age}</h3>
-                    <p className="text-sm text-[#0D3B66]/50 lowercase">{profileData.city}{profileData.almaMater ? ` - ${profileData.almaMater}` : ""}</p>
-                  </div>
-                </div>
-
-                {/* Hobby photos */}
-                {profileData.hobbyPhotos && Object.keys(profileData.hobbyPhotos).length > 0 && (
-                  <div className="flex gap-2 overflow-x-auto pb-1">
-                    {Object.entries(profileData.hobbyPhotos).map(([hobby, url]: [string, any]) => (
-                      url && (
-                        <div key={hobby} className="flex-shrink-0 relative">
-                          <img src={url} alt={hobby} className="w-24 h-24 rounded-xl object-cover" />
-                          <span className="absolute bottom-1 left-1 bg-[#EE964B] text-white text-[9px] px-2 py-0.5 rounded-full lowercase font-bold">{hobby}</span>
-                        </div>
-                      )
-                    ))}
-                  </div>
-                )}
-
-                {/* Hobbies */}
-                {profileData.hobbies?.length > 0 && (
-                  <div className="flex flex-wrap gap-1.5">
-                    {profileData.hobbies.map((hobby: string) => (
-                      <span key={hobby} className="px-2.5 py-1 rounded-full bg-[#EE964B]/10 text-[#EE964B] text-xs lowercase font-semibold">{hobby}</span>
-                    ))}
-                  </div>
-                )}
-
-                {/* Looking for */}
-                {profileData.lookingFor && (
-                  <div>
-                    <p className="text-xs text-[#0D3B66]/40 lowercase font-semibold mb-1">looking for</p>
-                    <p className="text-sm text-[#0D3B66] lowercase font-medium">{profileData.lookingFor}</p>
-                  </div>
-                )}
-
-                {/* Fun fact */}
-                {profileData.funFact && (
-                  <div>
-                    <p className="text-xs text-[#0D3B66]/40 lowercase font-semibold mb-1">fun fact</p>
-                    <p className="text-sm text-[#0D3B66] lowercase font-medium italic">{profileData.funFact}</p>
-                  </div>
-                )}
-              </div>
-            )}
-          </DialogContent>
-        </Dialog>
       </div>
     );
   }
 
-  return (
-    <div className="pb-4">
+  const profileDialog = (
+    <Dialog open={showProfile} onOpenChange={setShowProfile}>
+      <DialogContent className="bg-white max-w-[400px] max-h-[85vh] overflow-y-auto p-0 rounded-2xl">
+        {profileData && (
+          <div className="p-4 space-y-3">
+            {/* Profile photo */}
+            <div className="flex items-center gap-3">
+              {profileData.profilePhoto ? (
+                <img src={profileData.profilePhoto} alt={profileData.name} className="w-16 h-16 rounded-full object-cover border-2 border-[#EE964B]" />
+              ) : (
+                <div className="w-16 h-16 rounded-full bg-[#EE964B]/20 flex items-center justify-center border-2 border-[#EE964B]">
+                  <span className="text-[#EE964B] font-bold text-2xl">{profileData.name?.[0]?.toUpperCase()}</span>
+                </div>
+              )}
+              <div>
+                <h3 className="text-lg font-bold text-[#0D3B66] lowercase">{profileData.name}, {profileData.age}</h3>
+                <p className="text-sm text-[#0D3B66]/50 lowercase">{profileData.city}{profileData.almaMater ? ` - ${profileData.almaMater}` : ""}</p>
+              </div>
+            </div>
+
+            {/* Hobby photos */}
+            {profileData.hobbyPhotos && Object.keys(profileData.hobbyPhotos).length > 0 && (
+              <div className="flex gap-2 overflow-x-auto pb-1">
+                {Object.entries(profileData.hobbyPhotos).map(([hobby, url]: [string, any]) => (
+                  url && (
+                    <div key={hobby} className="flex-shrink-0 relative">
+                      <img src={url} alt={hobby} className="w-24 h-24 rounded-xl object-cover" />
+                      <span className="absolute bottom-1 left-1 bg-[#EE964B] text-white text-[9px] px-2 py-0.5 rounded-full lowercase font-bold">{hobby}</span>
+                    </div>
+                  )
+                ))}
+              </div>
+            )}
+
+            {/* Hobbies */}
+            {profileData.hobbies?.length > 0 && (
+              <div className="flex flex-wrap gap-1.5">
+                {profileData.hobbies.map((hobby: string) => (
+                  <span key={hobby} className="px-2.5 py-1 rounded-full bg-[#EE964B]/10 text-[#EE964B] text-xs lowercase font-semibold">{hobby}</span>
+                ))}
+              </div>
+            )}
+
+            {/* Looking for */}
+            {profileData.lookingFor && (
+              <div>
+                <p className="text-xs text-[#0D3B66]/40 lowercase font-semibold mb-1">looking for</p>
+                <p className="text-sm text-[#0D3B66] lowercase font-medium">{profileData.lookingFor}</p>
+              </div>
+            )}
+
+            {/* Fun fact */}
+            {profileData.funFact && (
+              <div>
+                <p className="text-xs text-[#0D3B66]/40 lowercase font-semibold mb-1">fun fact</p>
+                <p className="text-sm text-[#0D3B66] lowercase font-medium italic">{profileData.funFact}</p>
+              </div>
+            )}
+          </div>
+        )}
+      </DialogContent>
+    </Dialog>
+  );
+
+  if (selectedChat) {
+    const otherName = getOtherUserName(selectedChat);
+    const otherPhoto = getOtherUserPhoto(selectedChat);
+    const deleted = isOtherUserDeleted(selectedChat);
+
+    return (
+      <div className="flex flex-col flex-1">
       <div className="sticky top-0 z-10 bg-background/95 backdrop-blur-sm px-4 pt-5 pb-3 border-b border-[#EE964B]/15">
         <h1 className="text-2xl font-black text-[#0D3B66] lowercase">messages</h1>
         <p className="text-[#EE964B] lowercase text-sm font-semibold">your friendships</p>
