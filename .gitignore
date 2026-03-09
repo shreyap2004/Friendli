@@ -34,3 +34,4 @@ supabase/.temp/
 
 # Screenshot test output
 ui-screenshots/
+test-results/
