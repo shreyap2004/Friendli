@@ -303,7 +303,7 @@ export default function Messages() {
     const deleted = isOtherUserDeleted(selectedChat);
 
     return (
-      <div className="flex flex-col flex-1">
+      <div className="flex flex-col" style={{ minHeight: "100%" }}>
         <div className="flex-shrink-0 border-b border-[#EE964B]/15 px-4 py-3 flex items-center gap-3">
           <button onClick={() => { setSelectedChat(null); loadChats(); }} className="text-[#0D3B66] hover:text-[#EE964B]">
             <ArrowLeft size={22} strokeWidth={2.5} />
@@ -397,7 +397,7 @@ export default function Messages() {
           <div ref={messagesEndRef} />
         </div>
 
-        <div className="flex-shrink-0 px-4 py-1.5">
+        <div className="flex-shrink-0 px-4 py-1">
           {deleted ? (
             <div className="flex items-center justify-center py-1">
               <p className="text-xs text-gray-400 lowercase font-medium">you can no longer send messages to this conversation</p>
