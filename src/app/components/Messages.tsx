@@ -303,7 +303,7 @@ export default function Messages() {
     const deleted = isOtherUserDeleted(selectedChat);
 
     return (
-      <div className="flex flex-col" style={{ minHeight: "100%" }}>
+      <div className="flex flex-col h-full overflow-hidden">
         <div className="flex-shrink-0 border-b border-[#EE964B]/15 px-4 py-3 flex items-center gap-3">
           <button onClick={() => { setSelectedChat(null); loadChats(); }} className="text-[#0D3B66] hover:text-[#EE964B]">
             <ArrowLeft size={22} strokeWidth={2.5} />
