@@ -397,7 +397,7 @@ export default function Messages() {
           <div ref={messagesEndRef} />
         </div>
 
-        <div className="flex-shrink-0 px-4 py-2">
+        <div className="flex-shrink-0 px-4 py-3">
           {deleted ? (
             <div className="flex items-center justify-center py-1">
               <p className="text-xs text-gray-400 lowercase font-medium">you can no longer send messages to this conversation</p>
