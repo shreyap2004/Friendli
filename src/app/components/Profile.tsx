@@ -235,6 +235,9 @@ export default function Profile() {
             <div>
               <h2 className="text-lg font-black text-[#0D3B66] lowercase">{profile.name}</h2>
               <p className="text-sm text-[#0D3B66]/50 lowercase font-medium">{profile.city}{profile.almaMater ? ` - ${profile.almaMater}` : ""}</p>
+              {!isEditing && (
+                <p className="text-xs text-[#EE964B] lowercase font-medium mt-0.5">tap to see how others see you</p>
+              )}
               {isEditing && (
                 <div className="flex gap-2 mt-1">
                   <button onClick={() => profilePhotoRef.current?.click()} className="text-xs text-[#EE964B] lowercase font-semibold">
