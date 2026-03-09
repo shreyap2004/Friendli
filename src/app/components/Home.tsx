@@ -579,7 +579,7 @@ export default function Home() {
               {users.length === 0 ? "no one here yet" : "no matches for your filters"}
             </h3>
             <p className="text-sm text-[#0D3B66]/60 lowercase font-medium mb-4">
-              {users.length === 0 ? "invite your classmates to join friendli!" : "try adjusting your filters to see more people"}
+              {users.length === 0 ? "" : "try adjusting your filters to see more people"}
             </p>
             <div className="flex gap-2 justify-center">
               {hasActiveFilters && (
