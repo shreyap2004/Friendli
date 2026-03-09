@@ -5,7 +5,7 @@ import { Input } from "./ui/input";
 import { Label } from "./ui/label";
 import {
   LogOut, Trash2, Lock, Crown, Check, X as XIcon,
-  Sparkles, Heart, MessageCircle, Eye, Zap, Clock, CreditCard
+  Sparkles, Heart, MessageCircle, Eye, Zap, Clock, CreditCard, Download, Share
 } from "lucide-react";
 import { toast } from "sonner";
 import {
@@ -230,6 +230,43 @@ export default function Settings() {
               <p className="text-xs text-[#F95738]/60 lowercase font-medium">permanently remove your account</p>
             </div>
           </button>
+        </div>
+
+        {/* Install as App */}
+        <div className="bg-gradient-to-r from-[#0D3B66] to-[#0D3B66]/90 rounded-2xl shadow-lg p-5 space-y-3">
+          <div className="flex items-center gap-2">
+            <Download size={18} className="text-white" />
+            <h3 className="text-sm font-black text-white lowercase">install friendli as an app</h3>
+          </div>
+          <div className="space-y-2">
+            <div className="flex items-start gap-2">
+              <div className="w-5 h-5 rounded-full bg-white/10 flex items-center justify-center flex-shrink-0 mt-0.5">
+                <span className="text-white text-[10px] font-bold">1</span>
+              </div>
+              <p className="text-white/70 text-xs lowercase font-medium">
+                open friendli in safari and tap the <Share size={11} className="inline text-white/90 mx-0.5" /> share button
+              </p>
+            </div>
+            <div className="flex items-start gap-2">
+              <div className="w-5 h-5 rounded-full bg-white/10 flex items-center justify-center flex-shrink-0 mt-0.5">
+                <span className="text-white text-[10px] font-bold">2</span>
+              </div>
+              <p className="text-white/70 text-xs lowercase font-medium">
+                scroll down and tap "add to home screen"
+              </p>
+            </div>
+            <div className="flex items-start gap-2">
+              <div className="w-5 h-5 rounded-full bg-white/10 flex items-center justify-center flex-shrink-0 mt-0.5">
+                <span className="text-white text-[10px] font-bold">3</span>
+              </div>
+              <p className="text-white/70 text-xs lowercase font-medium">
+                keep "open as web app" on, then tap "add"
+              </p>
+            </div>
+          </div>
+          <p className="text-white/40 text-[10px] lowercase font-medium">
+            friendli will appear on your home screen as a full-screen app
+          </p>
         </div>
 
         {/* App Info */}
