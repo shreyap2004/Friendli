@@ -6,7 +6,7 @@ const PROTECTED_ROUTES = ["/home", "/messages", "/profile", "/settings"];
 
 function SplashScreen() {
   return (
-    <div className="fixed inset-0 flex flex-col items-center justify-center bg-[#DA6534]">
+    <div className="fixed inset-0 flex flex-col items-center justify-center bg-[#D77240]">
       <h1 className="text-5xl font-black text-white lowercase drop-shadow-md mb-2">friendli</h1>
       <p className="text-white/90 lowercase font-semibold drop-shadow-sm">make meaningful connections</p>
     </div>
@@ -67,7 +67,7 @@ export default function Root() {
   // behind the status bar. But the area OUTSIDE our content (the safe area
   // margins) shows html/body background. By matching it, the bars disappear.
   useEffect(() => {
-    const bg = isLoginPage ? "#DA6534" : "#FDFAEC";
+    const bg = isLoginPage ? "#D77240" : "#FDFAEC";
     document.documentElement.style.cssText = `margin:0;padding:0;background:${bg};height:100%;overflow:hidden`;
     document.body.style.cssText = `margin:0;padding:0;background:${bg};height:100%;overflow:hidden`;
   }, [isLoginPage]);
@@ -81,7 +81,7 @@ export default function Root() {
   if (!authChecked) return <SplashScreen />;
 
   const bgClass = isLoginPage
-    ? "bg-[#DA6534]"
+    ? "bg-[#D77240]"
     : "bg-[#FDFAEC]";
 
   return (
@@ -98,7 +98,7 @@ export default function Root() {
           <button
             onClick={() => navigate('/home')}
             className={`flex flex-col items-center gap-0.5 px-3 py-1.5 rounded-xl transition-all ${
-              isActive('/home') ? 'text-[#DA6534] bg-[#DA6534]/10' : 'text-[#0D3B66]/40'
+              isActive('/home') ? 'text-[#D77240] bg-[#D77240]/10' : 'text-[#0D3B66]/40'
             }`}
           >
             <Home size={22} strokeWidth={isActive('/home') ? 2.5 : 2} />
@@ -107,7 +107,7 @@ export default function Root() {
           <button
             onClick={() => navigate('/messages')}
             className={`flex flex-col items-center gap-0.5 px-3 py-1.5 rounded-xl transition-all relative ${
-              isActive('/messages') ? 'text-[#DA6534] bg-[#DA6534]/10' : 'text-[#0D3B66]/40'
+              isActive('/messages') ? 'text-[#D77240] bg-[#D77240]/10' : 'text-[#0D3B66]/40'
             }`}
           >
             <MessageCircle size={22} strokeWidth={isActive('/messages') ? 2.5 : 2} />
@@ -121,7 +121,7 @@ export default function Root() {
           <button
             onClick={() => navigate('/profile')}
             className={`flex flex-col items-center gap-0.5 px-3 py-1.5 rounded-xl transition-all ${
-              isActive('/profile') ? 'text-[#DA6534] bg-[#DA6534]/10' : 'text-[#0D3B66]/40'
+              isActive('/profile') ? 'text-[#D77240] bg-[#D77240]/10' : 'text-[#0D3B66]/40'
             }`}
           >
             <User size={22} strokeWidth={isActive('/profile') ? 2.5 : 2} />
@@ -130,7 +130,7 @@ export default function Root() {
           <button
             onClick={() => navigate('/settings')}
             className={`flex flex-col items-center gap-0.5 px-3 py-1.5 rounded-xl transition-all ${
-              isActive('/settings') ? 'text-[#DA6534] bg-[#DA6534]/10' : 'text-[#0D3B66]/40'
+              isActive('/settings') ? 'text-[#D77240] bg-[#D77240]/10' : 'text-[#0D3B66]/40'
             }`}
           >
             <Settings size={22} strokeWidth={isActive('/settings') ? 2.5 : 2} />
