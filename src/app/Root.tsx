@@ -85,7 +85,7 @@ export default function Root() {
       </div>
 
       {showNavigation && (
-        <nav className="flex-shrink-0 bg-white border-t border-[#EE964B]/20 px-4 py-2 flex justify-around items-center z-50">
+        <nav className="flex-shrink-0 bg-[#FDFAEC] border-t border-[#0D3B66]/10 px-4 py-2 flex justify-around items-center z-50">
           <button
             onClick={() => navigate('/home')}
             className={`flex flex-col items-center gap-0.5 px-3 py-1.5 rounded-xl transition-all ${

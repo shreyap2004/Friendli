@@ -187,7 +187,7 @@ export default function Profile() {
   };
 
   return (
-    <div className="flex-1 overflow-y-auto pb-20">
+    <div className="flex-1 overflow-y-auto pb-4">
       {/* Header */}
       <div className="sticky top-0 z-10 bg-background/95 backdrop-blur-sm px-4 pt-5 pb-3 border-b border-[#EE964B]/15">
         <div className="flex justify-between items-center">
