@@ -15,29 +15,10 @@ const HOBBIES = [
   "movies", "coffee", "fitness", "volunteering"
 ];
 
-function compressImage(file: File, maxSize: number = 300): Promise<string> {
+function readImageAsDataURL(file: File): Promise<string> {
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
-    reader.onload = (e) => {
-      const img = new Image();
-      img.onload = () => {
-        const canvas = document.createElement("canvas");
-        let w = img.width;
-        let h = img.height;
-        if (w > h) {
-          if (w > maxSize) { h = (h * maxSize) / w; w = maxSize; }
-        } else {
-          if (h > maxSize) { w = (w * maxSize) / h; h = maxSize; }
-        }
-        canvas.width = w;
-        canvas.height = h;
-        const ctx = canvas.getContext("2d");
-        ctx?.drawImage(img, 0, 0, w, h);
-        resolve(canvas.toDataURL("image/jpeg", 0.7));
-      };
-      img.onerror = reject;
-      img.src = e.target?.result as string;
-    };
+    reader.onload = (e) => resolve(e.target?.result as string);
     reader.onerror = reject;
     reader.readAsDataURL(file);
   });
@@ -166,8 +147,8 @@ export default function Profile() {
     const file = e.target.files?.[0];
     if (!file) return;
     try {
-      const compressed = await compressImage(file, 300);
-      setProfile(prev => ({ ...prev, profilePhoto: compressed }));
+      const dataUrl = await readImageAsDataURL(file);
+      setProfile(prev => ({ ...prev, profilePhoto: dataUrl }));
     } catch {
       toast.error("failed to process image");
     }
@@ -177,10 +158,10 @@ export default function Profile() {
     const file = e.target.files?.[0];
     if (!file || !uploadingHobby) return;
     try {
-      const compressed = await compressImage(file, 500);
+      const dataUrl = await readImageAsDataURL(file);
       setProfile(prev => ({
         ...prev,
-        hobbyPhotos: { ...prev.hobbyPhotos, [uploadingHobby]: compressed }
+        hobbyPhotos: { ...prev.hobbyPhotos, [uploadingHobby]: dataUrl }
       }));
     } catch {
       toast.error("failed to process image");
