@@ -379,7 +379,8 @@ export default function Home() {
       setUsers(available);
     } catch (err) {
       console.error("Error loading discover:", err);
-      toast.error("failed to load profiles");
+      const message = err instanceof Error ? err.message : "failed to load profiles";
+      toast.error(message);
     } finally {
       setLoading(false);
       setRefreshing(false);
