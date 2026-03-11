@@ -8,6 +8,7 @@ import { ChevronRight, ChevronLeft, Camera, X, ImagePlus } from "lucide-react";
 import { toast } from "sonner";
 import * as api from "@/lib/api";
 import { geocodeZip } from "@/lib/geo";
+import { uploadImage, generateImagePath, dataURLtoFile } from "@/lib/storage";
 
 const HOBBIES = [
   "hiking", "reading", "cooking", "gaming", "yoga", "photography",
@@ -101,6 +102,38 @@ export default function Onboarding() {
         return;
       }
 
+      // Upload images to storage if they're data URLs (new uploads)
+      let profilePhotoUrl = formData.profilePhoto;
+      let hobbyPhotosUrls: Record<string, string> = { ...formData.hobbyPhotos };
+
+      // Check if profilePhoto is a data URL (base64) and upload it
+      if (formData.profilePhoto && formData.profilePhoto.startsWith("data:")) {
+        try {
+          const file = await dataURLtoFile(formData.profilePhoto, "profile.jpg");
+          const path = generateImagePath(user.id, "profile");
+          profilePhotoUrl = await uploadImage(file, "images", path.split("/").slice(1).join("/"));
+        } catch (err) {
+          const errMsg = err instanceof Error ? err.message : "Failed to upload profile photo";
+          toast.error(errMsg);
+          return;
+        }
+      }
+
+      // Check hobby photos and upload any data URLs
+      for (const [hobby, photoUrl] of Object.entries(formData.hobbyPhotos)) {
+        if (photoUrl && photoUrl.startsWith("data:")) {
+          try {
+            const file = await dataURLtoFile(photoUrl, `${hobby}.jpg`);
+            const path = generateImagePath(user.id, "hobby", hobby);
+            hobbyPhotosUrls[hobby] = await uploadImage(file, "images", path.split("/").slice(1).join("/"));
+          } catch (err) {
+            const errMsg = err instanceof Error ? err.message : `Failed to upload ${hobby} photo`;
+            toast.error(errMsg);
+            return;
+          }
+        }
+      }
+
       let lat = null;
       let lng = null;
       if (formData.zipCode) {
@@ -122,8 +155,8 @@ export default function Onboarding() {
         funFact: formData.funFact,
         lookingFor: formData.lookingFor,
         hobbies: formData.hobbies,
-        profilePhoto: formData.profilePhoto,
-        hobbyPhotos: formData.hobbyPhotos,
+        profilePhoto: profilePhotoUrl,
+        hobbyPhotos: hobbyPhotosUrls,
         personality: formData.personality,
         preferredHobbies: formData.preferredHobbies,
         onboarded: true,

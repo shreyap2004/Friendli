@@ -8,6 +8,7 @@ import { toast } from "sonner";
 import * as api from "@/lib/api";
 import { Dialog, DialogContent } from "./ui/dialog";
 import { geocodeZip } from "@/lib/geo";
+import { uploadImage, generateImagePath, dataURLtoFile } from "@/lib/storage";
 
 const HOBBIES = [
   "hiking", "reading", "cooking", "gaming", "yoga", "photography",
@@ -94,6 +95,39 @@ export default function Profile() {
       const user = api.getCurrentUser();
       if (!user) return;
 
+      // Upload images to storage if they're data URLs (new uploads)
+      let profilePhotoUrl = profile.profilePhoto;
+      let hobbyPhotosUrls: Record<string, string> = { ...profile.hobbyPhotos };
+
+      // Check if profilePhoto is a data URL (base64) and upload it
+      if (profile.profilePhoto && profile.profilePhoto.startsWith("data:")) {
+        try {
+          const file = await dataURLtoFile(profile.profilePhoto, "profile.jpg");
+          const path = generateImagePath(user.id, "profile");
+          profilePhotoUrl = await uploadImage(file, "images", path.split("/").slice(1).join("/"));
+          toast.success("profile photo uploaded!");
+        } catch (err) {
+          const errMsg = err instanceof Error ? err.message : "Failed to upload profile photo";
+          toast.error(errMsg);
+          return;
+        }
+      }
+
+      // Check hobby photos and upload any data URLs
+      for (const [hobby, photoUrl] of Object.entries(profile.hobbyPhotos)) {
+        if (photoUrl && photoUrl.startsWith("data:")) {
+          try {
+            const file = await dataURLtoFile(photoUrl, `${hobby}.jpg`);
+            const path = generateImagePath(user.id, "hobby", hobby);
+            hobbyPhotosUrls[hobby] = await uploadImage(file, "images", path.split("/").slice(1).join("/"));
+          } catch (err) {
+            const errMsg = err instanceof Error ? err.message : `Failed to upload ${hobby} photo`;
+            toast.error(errMsg);
+            return;
+          }
+        }
+      }
+
       const updateData: Record<string, unknown> = {
         name: profile.name,
         age: profile.age,
@@ -104,8 +138,8 @@ export default function Profile() {
         funFact: profile.funFact,
         lookingFor: profile.lookingFor,
         hobbies: profile.hobbies,
-        profilePhoto: profile.profilePhoto,
-        hobbyPhotos: profile.hobbyPhotos,
+        profilePhoto: profilePhotoUrl,
+        hobbyPhotos: hobbyPhotosUrls,
       };
 
       let lat = undefined;
