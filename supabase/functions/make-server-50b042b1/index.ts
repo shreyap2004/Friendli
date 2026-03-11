@@ -75,6 +75,13 @@ app.post(`${PREFIX}/auth/register`, async (c) => {
     await kv.set(`user:${userId}`, user);
     await kv.set(`user_email:${normalizedEmail}`, userId);
 
+    // Add user ID to the users list for discovery
+    const usersList = (await kv.get("users:list")) || [];
+    if (!usersList.includes(userId)) {
+      usersList.push(userId);
+      await kv.set("users:list", usersList);
+    }
+
     // Return user without password
     const { passwordHash: _, ...safeUser } = user;
     console.log(`User registered: ${normalizedEmail} (${userId})`);
@@ -180,10 +187,18 @@ app.get(`${PREFIX}/discover/:userId`, async (c) => {
   try {
     const userId = c.req.param("userId");
 
-    // Get all users by prefix
-    const allUsers = await kv.getByPrefix("user:");
+    // Get the list of all user IDs (instead of scanning all keys)
+    const userIds = (await kv.get("users:list")) || [];
 
-    // Filter: only onboarded users, exclude current user, exclude email lookup keys
+    if (userIds.length === 0) {
+      return c.json({ users: [] });
+    }
+
+    // Fetch user profiles for only the users we need
+    const userKeys = userIds.map((id: string) => `user:${id}`);
+    const allUsers = await kv.mget(userKeys);
+
+    // Filter: only onboarded users, exclude current user
     const discoverable = allUsers
       .filter((u: any) => u && u.id && u.id !== userId && u.onboarded)
       .map((u: any) => {
@@ -661,6 +676,11 @@ app.delete(`${PREFIX}/users/:userId`, async (c) => {
 
     // Remove rejection records
     await kv.del(`rejected:${userId}`);
+
+    // Remove user from users list
+    const usersList = (await kv.get("users:list")) || [];
+    const updated = usersList.filter((id: string) => id !== userId);
+    await kv.set("users:list", updated);
 
     // Delete user record
     await kv.del(`user:${userId}`);
