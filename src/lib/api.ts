@@ -104,6 +104,11 @@ export async function deleteAccount(userId: string) {
   return request(`/users/${userId}`, { method: "DELETE" });
 }
 
+// Combined chat state (messages + typing + read receipt in one call)
+export async function getChatState(chatId: string, userId: string) {
+  return request(`/chat-state/${chatId}/${userId}`);
+}
+
 // Typing indicators
 export async function setTyping(chatId: string, userId: string, isTyping: boolean) {
   return request("/typing", {

@@ -56,7 +56,7 @@ export default function Root() {
       } catch { /* silent */ }
     };
     checkUnread();
-    const interval = setInterval(checkUnread, 10000);
+    const interval = setInterval(checkUnread, 30000);
     return () => clearInterval(interval);
   }, [location.pathname]);
 

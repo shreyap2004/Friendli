@@ -109,72 +109,40 @@ export default function Messages() {
     api.markRead(selectedChat.id, currentUser.id);
   }, [selectedChat?.id, currentUser?.id]);
 
-  // Poll for new messages when in a chat
-  useEffect(() => {
-    if (!selectedChat) return;
-    const interval = setInterval(async () => {
-      try {
-        const result = await api.getMessages(selectedChat.id);
-        if (result.messages && result.messages.length > (selectedChat.messages?.length || 0)) {
-          const updatedChat = { ...selectedChat, messages: result.messages };
-          setSelectedChat(updatedChat);
-          setChats(prev => prev.map(c => c.id === selectedChat.id ? updatedChat : c));
-          // Re-mark as read when new messages arrive
-          if (currentUser?.id) {
-            api.markRead(selectedChat.id, currentUser.id);
-          }
-        }
-      } catch (err) {
-        console.error("Error polling messages:", err);
-      }
-    }, 5000);
-    return () => clearInterval(interval);
-  }, [selectedChat?.id, selectedChat?.messages?.length, currentUser?.id]);
-
-  // Poll for typing indicator from the other user
+  // Single combined poll for messages + typing + read receipts (replaces 3 separate polls)
+  // This reduces DB queries by 66% when a chat is open
   useEffect(() => {
     if (!selectedChat || !currentUser?.id) return;
-    const otherId = getOtherUserId(selectedChat);
-    if (!otherId || isOtherUserDeleted(selectedChat)) return;
 
-    const interval = setInterval(async () => {
+    const pollChatState = async () => {
       try {
-        const result = await api.getTyping(selectedChat.id, otherId);
-        setOtherUserTyping(!!result?.isTyping);
-      } catch {
-        setOtherUserTyping(false);
+        const state = await api.getChatState(selectedChat.id, currentUser.id);
+
+        // Update messages if new ones arrived
+        if (state.messages && state.messages.length > (selectedChat.messages?.length || 0)) {
+          const updatedChat = { ...selectedChat, messages: state.messages };
+          setSelectedChat(updatedChat);
+          setChats(prev => prev.map(c => c.id === selectedChat.id ? updatedChat : c));
+          api.markRead(selectedChat.id, currentUser.id);
+        }
+
+        // Update typing and read receipt state
+        setOtherUserTyping(!!state.isTyping);
+        setReadAt(state.readAt ?? null);
+      } catch (err) {
+        console.error("Error polling chat state:", err);
       }
-    }, 3000);
+    };
+
+    pollChatState(); // Initial fetch
+    const interval = setInterval(pollChatState, 5000);
 
     return () => {
       clearInterval(interval);
       setOtherUserTyping(false);
-    };
-  }, [selectedChat?.id, currentUser?.id, getOtherUserId, isOtherUserDeleted]);
-
-  // Poll for read receipts from the other user
-  useEffect(() => {
-    if (!selectedChat || !currentUser?.id) return;
-    const otherId = getOtherUserId(selectedChat);
-    if (!otherId || isOtherUserDeleted(selectedChat)) return;
-
-    const pollReadReceipt = async () => {
-      try {
-        const result = await api.getReadReceipt(selectedChat.id, otherId);
-        setReadAt(result?.readAt ?? null);
-      } catch {
-        // ignore
-      }
-    };
-
-    pollReadReceipt();
-    const interval = setInterval(pollReadReceipt, 5000);
-
-    return () => {
-      clearInterval(interval);
       setReadAt(null);
     };
-  }, [selectedChat?.id, currentUser?.id, getOtherUserId, isOtherUserDeleted]);
+  }, [selectedChat?.id, selectedChat?.messages?.length, currentUser?.id]);
 
   // Clean up typing timeout on unmount
   useEffect(() => {

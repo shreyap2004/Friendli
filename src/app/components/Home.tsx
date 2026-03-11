@@ -357,9 +357,10 @@ export default function Home() {
 
     setLoading(true);
     try {
-      const [discoverResult, interactionsResult, premiumResult] = await Promise.all([
+      // Discover now returns interactions alongside users (1 API call instead of 2)
+      // Users are already pre-filtered server-side (excludes interacted users)
+      const [discoverResult, premiumResult] = await Promise.all([
         api.discoverUsers(currentUser.id),
-        api.getInteractions(currentUser.id),
         api.checkPremium(currentUser.id).catch(() => ({ isPremium: false, daysRemaining: 0 })),
       ]);
 
@@ -368,15 +369,13 @@ export default function Home() {
       setPremiumStatus(premiumResult);
 
       const interacted = new Set<string>([
-        ...(interactionsResult.sent || []),
-        ...(interactionsResult.rejected || []),
+        ...(discoverResult.interactions?.sent || []),
+        ...(discoverResult.interactions?.rejected || []),
       ]);
       setInteractedIds(interacted);
 
-      const available = (discoverResult.users || []).filter(
-        (u: UserProfile) => !interacted.has(u.id)
-      );
-      setUsers(available);
+      // Users come pre-filtered from server (no interacted users included)
+      setUsers(discoverResult.users || []);
     } catch (err) {
       console.error("Error loading discover:", err);
       const message = err instanceof Error ? err.message : "failed to load profiles";

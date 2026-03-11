@@ -12,10 +12,17 @@ CREATE TABLE kv_store_50b042b1 (
 // This file provides a simple key-value interface for storing Figma Make data. It should be adequate for most small-scale use cases.
 import { createClient } from "jsr:@supabase/supabase-js@2.49.8";
 
-const client = () => createClient(
-  Deno.env.get("SUPABASE_URL"),
-  Deno.env.get("SUPABASE_SERVICE_ROLE_KEY"),
-);
+// Cache the Supabase client as a singleton to avoid creating a new connection on every call
+let cachedClient: ReturnType<typeof createClient> | null = null;
+const client = () => {
+  if (!cachedClient) {
+    cachedClient = createClient(
+      Deno.env.get("SUPABASE_URL")!,
+      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
+    );
+  }
+  return cachedClient;
+};
 
 // Set stores a key-value pair in the database.
 export const set = async (key: string, value: any): Promise<void> => {
@@ -58,13 +65,41 @@ export const mset = async (keys: string[], values: any[]): Promise<void> => {
 };
 
 // Gets multiple key-value pairs from the database.
+// Batches large requests into chunks to avoid statement timeouts on resource-constrained plans.
+// Returns values in the same order as input keys (null for missing keys).
+const MGET_BATCH_SIZE = 30;
 export const mget = async (keys: string[]): Promise<any[]> => {
-  const supabase = client()
-  const { data, error } = await supabase.from("kv_store_50b042b1").select("value").in("key", keys);
-  if (error) {
-    throw new Error(error.message);
+  if (keys.length === 0) return [];
+  const supabase = client();
+
+  if (keys.length <= MGET_BATCH_SIZE) {
+    const { data, error } = await supabase.from("kv_store_50b042b1").select("key, value").in("key", keys);
+    if (error) throw new Error(error.message);
+    const map = new Map((data || []).map((d: any) => [d.key, d.value]));
+    return keys.map(k => map.get(k) ?? null);
   }
-  return data?.map((d) => d.value) ?? [];
+
+  // Split into chunks and fetch in parallel
+  const chunks: string[][] = [];
+  for (let i = 0; i < keys.length; i += MGET_BATCH_SIZE) {
+    chunks.push(keys.slice(i, i + MGET_BATCH_SIZE));
+  }
+
+  const results = await Promise.all(
+    chunks.map(async (chunk) => {
+      const { data, error } = await supabase.from("kv_store_50b042b1").select("key, value").in("key", chunk);
+      if (error) throw new Error(error.message);
+      return data || [];
+    })
+  );
+
+  const map = new Map<string, any>();
+  for (const batch of results) {
+    for (const row of batch) {
+      map.set(row.key, row.value);
+    }
+  }
+  return keys.map(k => map.get(k) ?? null);
 };
 
 // Deletes multiple key-value pairs from the database.

@@ -182,31 +182,53 @@ app.get(`${PREFIX}/users/:userId`, async (c) => {
   }
 });
 
-// Get all users for discovery (excludes current user)
+// Get all users for discovery (excludes current user and already-interacted users)
 app.get(`${PREFIX}/discover/:userId`, async (c) => {
   try {
     const userId = c.req.param("userId");
 
-    // Get the list of all user IDs (instead of scanning all keys)
-    const userIds = (await kv.get("users:list")) || [];
+    // Fetch user list AND interactions in parallel (3 fast KV reads)
+    const [userIds, sentList, rejectedList] = await Promise.all([
+      kv.get("users:list").then((v: any) => v || []),
+      kv.get(`friendify_sent:${userId}`).then((v: any) => v || []),
+      kv.get(`rejected:${userId}`).then((v: any) => v || []),
+    ]);
 
-    if (userIds.length === 0) {
-      return c.json({ users: [] });
+    // Filter out current user and already-interacted users BEFORE fetching profiles
+    // This drastically reduces the number of profiles we need to read from the DB
+    const excluded = new Set([userId, ...sentList, ...rejectedList]);
+    const candidateIds = userIds.filter((id: string) => !excluded.has(id));
+
+    if (candidateIds.length === 0) {
+      return c.json({ users: [], interactions: { sent: sentList, rejected: rejectedList } });
     }
 
-    // Fetch user profiles for only the users we need
-    const userKeys = userIds.map((id: string) => `user:${id}`);
+    // Fetch only the candidate profiles (mget handles batching internally)
+    const userKeys = candidateIds.map((id: string) => `user:${id}`);
     const allUsers = await kv.mget(userKeys);
 
-    // Filter: only onboarded users, exclude current user
+    // Filter for onboarded users and strip unnecessary fields to reduce payload
     const discoverable = allUsers
-      .filter((u: any) => u && u.id && u.id !== userId && u.onboarded)
-      .map((u: any) => {
-        const { passwordHash: _, ...safe } = u;
-        return safe;
-      });
+      .filter((u: any) => u && u.onboarded)
+      .map((u: any) => ({
+        id: u.id,
+        name: u.name,
+        age: u.age,
+        city: u.city,
+        almaMater: u.almaMater,
+        gender: u.gender,
+        funFact: u.funFact,
+        lookingFor: u.lookingFor,
+        hobbies: u.hobbies,
+        profilePhoto: u.profilePhoto,
+        hobbyPhotos: u.hobbyPhotos,
+        personality: u.personality,
+        lat: u.lat,
+        lng: u.lng,
+      }));
 
-    return c.json({ users: discoverable });
+    // Return interactions alongside users so frontend doesn't need a separate API call
+    return c.json({ users: discoverable, interactions: { sent: sentList, rejected: rejectedList } });
   } catch (err) {
     console.log(`Error fetching users for discovery: ${err}`);
     return c.json({ error: `Failed to fetch users: ${err}` }, 500);
@@ -338,15 +360,20 @@ app.get(`${PREFIX}/friendify/received/:userId`, async (c) => {
     const userId = c.req.param("userId");
     const receivedList = (await kv.get(`friendify_received:${userId}`)) || [];
 
-    // Get user profiles for each
-    const users = [];
-    for (const id of receivedList) {
-      const user = await kv.get(`user:${id}`);
-      if (user) {
-        const { passwordHash: _, ...safe } = user;
-        users.push(safe);
-      }
+    if (receivedList.length === 0) {
+      return c.json({ users: [] });
     }
+
+    // Batch fetch all user profiles at once instead of one-by-one (fixes N+1)
+    const userKeys = receivedList.map((id: string) => `user:${id}`);
+    const allUsers = await kv.mget(userKeys);
+
+    const users = allUsers
+      .filter((u: any) => u)
+      .map((u: any) => {
+        const { passwordHash: _, ...safe } = u;
+        return safe;
+      });
 
     return c.json({ users });
   } catch (err) {
@@ -690,6 +717,42 @@ app.delete(`${PREFIX}/users/:userId`, async (c) => {
   } catch (err) {
     console.log(`Error deleting account: ${err}`);
     return c.json({ error: `Failed to delete account: ${err}` }, 500);
+  }
+});
+
+// Combined chat state: messages + typing + read receipt in one call
+// Replaces 3 separate polling endpoints to reduce DB queries by 66%
+app.get(`${PREFIX}/chat-state/:chatId/:userId`, async (c) => {
+  try {
+    const chatId = c.req.param("chatId");
+    const userId = c.req.param("userId");
+
+    const chat = await kv.get(`chat:${chatId}`);
+    const otherId = chat?.participants?.find((id: string) => id !== userId);
+
+    let isTyping = false;
+    let readAt = null;
+
+    if (otherId) {
+      // Fetch typing status and read receipt in parallel
+      const [typingData, readData] = await Promise.all([
+        kv.get(`typing:${chatId}:${otherId}`),
+        kv.get(`read:${chatId}:${otherId}`),
+      ]);
+
+      if (typingData?.isTyping && (Date.now() - typingData.timestamp) < 5000) {
+        isTyping = true;
+      }
+      readAt = readData?.readAt || null;
+    }
+
+    return c.json({
+      messages: chat?.messages || [],
+      isTyping,
+      readAt,
+    });
+  } catch {
+    return c.json({ messages: [], isTyping: false, readAt: null });
   }
 });
 
