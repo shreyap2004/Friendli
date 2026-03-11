@@ -35,3 +35,8 @@ supabase/.temp/
 # Screenshot test output
 ui-screenshots/
 test-results/
+
+# Claude Code temporary files
+.claude/
+tmpclaude-*
+nul
