@@ -16,7 +16,7 @@ const HOBBIES = [
   "movies", "coffee", "fitness", "volunteering"
 ];
 
-function compressImage(file: File, maxSize: number = 300): Promise<string> {
+function compressImage(file: File, maxSize: number = 1200): Promise<string> {
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
     reader.onload = (e) => {
@@ -25,6 +25,7 @@ function compressImage(file: File, maxSize: number = 300): Promise<string> {
         const canvas = document.createElement("canvas");
         let w = img.width;
         let h = img.height;
+        // Only downscale if larger than maxSize (preserves smaller images as-is)
         if (w > h) {
           if (w > maxSize) { h = (h * maxSize) / w; w = maxSize; }
         } else {
@@ -34,7 +35,7 @@ function compressImage(file: File, maxSize: number = 300): Promise<string> {
         canvas.height = h;
         const ctx = canvas.getContext("2d");
         ctx?.drawImage(img, 0, 0, w, h);
-        resolve(canvas.toDataURL("image/jpeg", 0.80));
+        resolve(canvas.toDataURL("image/jpeg", 0.92));
       };
       img.onerror = reject;
       img.src = e.target?.result as string;

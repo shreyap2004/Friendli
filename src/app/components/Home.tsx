@@ -118,12 +118,28 @@ function MatchCelebration({ matchName, onDismiss }: { matchName: string; onDismi
 /* ─── Photo Carousel ─── */
 function PhotoCarousel({ photos }: { photos: { url: string; label: string }[] }) {
   const [current, setCurrent] = useState(0);
+  const [loadedImages, setLoadedImages] = useState<Set<number>>(new Set([0]));
   const touchStartX = useRef<number | null>(null);
   const touchEndX = useRef<number | null>(null);
 
   const goTo = useCallback((index: number) => {
-    if (index >= 0 && index < photos.length) setCurrent(index);
+    if (index >= 0 && index < photos.length) {
+      setCurrent(index);
+      // Preload the next and previous images
+      setLoadedImages(prev => {
+        const next = new Set(prev);
+        next.add(index);
+        if (index + 1 < photos.length) next.add(index + 1);
+        if (index - 1 >= 0) next.add(index - 1);
+        return next;
+      });
+    }
   }, [photos.length]);
+
+  // Preload adjacent images on mount
+  useEffect(() => {
+    setLoadedImages(new Set([0, 1]));
+  }, []);
 
   const handleTouchStart = (e: React.TouchEvent) => { touchStartX.current = e.targetTouches[0].clientX; };
   const handleTouchMove = (e: React.TouchEvent) => { touchEndX.current = e.targetTouches[0].clientX; };
@@ -155,8 +171,8 @@ function PhotoCarousel({ photos }: { photos: { url: string; label: string }[] })
   if (photos.length === 1) {
     return (
       <div className="relative">
-        <div className="aspect-square relative overflow-hidden">
-          <img src={photos[0].url} alt={photos[0].label} className="w-full h-full object-cover" draggable={false} />
+        <div className="aspect-square relative overflow-hidden bg-[#FDFAEC]">
+          <img src={photos[0].url} alt={photos[0].label} className="w-full h-full object-cover" draggable={false} loading="lazy" />
           {photos[0].label && (
             <div className="absolute bottom-3 right-3 bg-[#EE964B] text-white px-4 py-1.5 rounded-full shadow-lg lowercase font-bold text-sm">
               {photos[0].label}
@@ -177,30 +193,42 @@ function PhotoCarousel({ photos }: { photos: { url: string; label: string }[] })
         ))}
       </div>
       <div
-        className="aspect-square relative overflow-hidden cursor-pointer select-none"
+        className="aspect-square relative overflow-hidden cursor-pointer select-none bg-[#FDFAEC]"
         onTouchStart={handleTouchStart}
         onTouchMove={handleTouchMove}
         onTouchEnd={handleTouchEnd}
         onClick={handleClick}
       >
-        <img src={photos[current].url} alt={photos[current].label} className="w-full h-full object-cover transition-opacity duration-200" draggable={false} />
+        {/* Preload adjacent slides off-screen for instant transitions */}
+        {photos.map((photo, i) => (
+          loadedImages.has(i) && (
+            <img
+              key={photo.url}
+              src={photo.url}
+              alt={photo.label}
+              className={`absolute inset-0 w-full h-full object-cover transition-opacity duration-200 ${i === current ? "opacity-100" : "opacity-0 pointer-events-none"}`}
+              draggable={false}
+              loading="lazy"
+            />
+          )
+        ))}
         {photos[current].label && photos[current].url && (
-          <div className="absolute bottom-3 right-3 bg-[#EE964B] text-white px-4 py-1.5 rounded-full shadow-lg lowercase font-bold text-sm">
+          <div className="absolute bottom-3 right-3 bg-[#EE964B] text-white px-4 py-1.5 rounded-full shadow-lg lowercase font-bold text-sm z-10">
             {photos[current].label}
           </div>
         )}
         {current > 0 && (
-          <div className="absolute left-2 top-1/2 -translate-y-1/2 w-8 h-8 rounded-full bg-black/30 flex items-center justify-center">
+          <div className="absolute left-2 top-1/2 -translate-y-1/2 w-8 h-8 rounded-full bg-black/30 flex items-center justify-center z-10">
             <ChevronLeft size={20} className="text-white" />
           </div>
         )}
         {current < photos.length - 1 && (
-          <div className="absolute right-2 top-1/2 -translate-y-1/2 w-8 h-8 rounded-full bg-black/30 flex items-center justify-center">
+          <div className="absolute right-2 top-1/2 -translate-y-1/2 w-8 h-8 rounded-full bg-black/30 flex items-center justify-center z-10">
             <ChevronRight size={20} className="text-white" />
           </div>
         )}
       </div>
-      <div className="absolute bottom-3 left-3 bg-black/50 text-white text-xs font-bold px-2.5 py-1 rounded-full">
+      <div className="absolute bottom-3 left-3 bg-black/50 text-white text-xs font-bold px-2.5 py-1 rounded-full z-10">
         {current + 1}/{photos.length}
       </div>
     </div>
