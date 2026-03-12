@@ -21,7 +21,7 @@ There is no random chance involved - matches are purely based on mutual interest
 1. User taps "Try Friendli+ Free" in Settings
 2. A 48-hour trial starts immediately with no payment required
 3. After 48 hours, the trial expires and a payment dialog appears with credit card fields
-4. User can subscribe for $9.99/month to continue premium access
+4. User can subscribe for $2.99/month to continue premium access
 5. All premium features are unlocked during the trial and after subscribing
 
 ## Data Persistence

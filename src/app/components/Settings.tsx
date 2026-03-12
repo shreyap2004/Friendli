@@ -169,7 +169,7 @@ export default function Settings() {
               className="w-full mt-3 bg-gradient-to-r from-[#EE964B] to-[#F95738] hover:opacity-90 text-white lowercase font-black"
             >
               <CreditCard className="mr-2" size={16} />
-              subscribe - $9.99/month
+              subscribe - $2.99/month
             </Button>
           </div>
         ) : (
@@ -363,7 +363,7 @@ export default function Settings() {
               {loading ? "starting trial..." : "start 48-hour free trial"}
             </Button>
             <p className="text-[10px] text-center text-[#0D3B66]/40 lowercase font-medium">
-              no payment required. $9.99/month after trial ends.
+              no payment required. $2.99/month after trial ends.
             </p>
             <Button variant="outline" onClick={() => setShowUpgradeDialog(false)}
               className="w-full lowercase border-[#0D3B66]/20 text-[#0D3B66] font-bold">
@@ -382,14 +382,14 @@ export default function Settings() {
               <DialogTitle className="text-lg text-[#0D3B66] lowercase font-black">subscribe to friendli+</DialogTitle>
             </div>
             <DialogDescription className="lowercase text-sm font-medium">
-              continue enjoying unlimited features for $9.99/month
+              continue enjoying unlimited features for $2.99/month
             </DialogDescription>
           </DialogHeader>
 
           <div className="space-y-4 py-3">
             <div className="bg-gradient-to-r from-[#EE964B]/10 to-[#F95738]/10 rounded-xl p-4 text-center">
               <Crown size={24} className="text-[#EE964B] mx-auto mb-2" />
-              <p className="text-2xl font-black text-[#0D3B66]">$9.99<span className="text-sm font-semibold text-[#0D3B66]/50">/month</span></p>
+              <p className="text-2xl font-black text-[#0D3B66]">$2.99<span className="text-sm font-semibold text-[#0D3B66]/50">/month</span></p>
               <p className="text-xs text-[#0D3B66]/50 lowercase font-medium mt-1">cancel anytime</p>
             </div>
 
@@ -439,7 +439,7 @@ export default function Settings() {
             <Button onClick={handleSubscribe} disabled={loading}
               className="w-full bg-gradient-to-r from-[#EE964B] to-[#F95738] hover:opacity-90 text-white lowercase py-5 text-sm font-black">
               <CreditCard className="mr-2" size={18} />
-              {loading ? "processing..." : "subscribe - $9.99/month"}
+              {loading ? "processing..." : "subscribe - $2.99/month"}
             </Button>
             <p className="text-[10px] text-center text-[#0D3B66]/30 lowercase font-medium">
               secure payment processing
